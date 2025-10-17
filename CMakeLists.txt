@@ -28,38 +28,42 @@ set(PICO_BOARD pico2_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(hello-matrix C CXX ASM)
+project(hello_matrix C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(hello-matrix hello-matrix.cpp )
+add_executable(hello_matrix 
+    hello_matrix.cpp 
+    input/key_matrix.cpp
+)
 
-pico_set_program_name(hello-matrix "hello-matrix")
-pico_set_program_version(hello-matrix "0.1")
+pico_set_program_name(hello_matrix "hello_matrix")
+pico_set_program_version(hello_matrix "0.1")
 
 # Generate PIO header
-pico_generate_pio_header(hello-matrix ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
+pico_generate_pio_header(hello_matrix ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
 
 # Add the standard library to the build
-target_link_libraries(hello-matrix
+target_link_libraries(hello_matrix
         pico_stdlib)
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(hello-matrix 0)
-pico_enable_stdio_usb(hello-matrix 1)
+pico_enable_stdio_uart(hello_matrix 0)
+pico_enable_stdio_usb(hello_matrix 1)
 
 # Add the standard include files to the build
-target_include_directories(hello-matrix PRIVATE
+target_include_directories(hello_matrix PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/input
 )
 
 # Add any user requested libraries
-target_link_libraries(hello-matrix 
+target_link_libraries(hello_matrix 
         hardware_pio
         hardware_timer
         )
 
-pico_add_extra_outputs(hello-matrix)
+pico_add_extra_outputs(hello_matrix)

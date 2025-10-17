@@ -5,11 +5,12 @@
 #include "hardware/pio.h"
 #include "hardware/timer.h"
 #include "hardware/uart.h"
-#include "hardware/gpio.h"
+
+#include "input/key_matrix.h"
 
 #include "blink.pio.h"
 
-void blink_pin_forever(PIO pio, uint sm, uint offset, uint pin, uint freq) {
+void blink_pin_forever(PIO pio, uint8_t sm, uint8_t offset, uint8_t pin, uint8_t freq) {
     blink_program_init(pio, sm, offset, pin);
     pio_sm_set_enabled(pio, sm, true);
 
@@ -46,9 +47,16 @@ int main()
     uart_init(uart0, 31250);
     gpio_set_function(0, GPIO_FUNC_UART); // TX on GP0
 
+    const uint8_t row_pins[MATRIX_ROWS] = {2, 3, 4, 5};
+    const uint8_t col_pins[MATRIX_COLS] = {8, 9};
+
+    configure_matrix_pins(row_pins, col_pins);
+
+    bool keys[MATRIX_ROWS][MATRIX_COLS] = {0};
+
     // PIO Blinking example
     // PIO pio = pio0;
-    // uint offset = pio_add_program(pio, &blink_program);
+    // uint8_t offset = pio_add_program(pio, &blink_program);
     // printf("Loaded program at %d\n", offset);
     
     // #ifdef PICO_DEFAULT_LED_PIN
@@ -63,30 +71,23 @@ int main()
     // For more examples of timer use see https://github.com/raspberrypi/pico-examples/tree/master/timer
 
     while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
+        poll_matrix_once(row_pins, col_pins, keys);
 
-        // starting at middle c
-        for (uint8_t note = 60; note < 84; note += 3) {
-            send_midi_note_on(note, 100);
-            sleep_ms(900 - 10);
-            send_midi_note_off(note, 0);
-            sleep_ms(10);
-            send_midi_note_on(note + 2, 100);
-            sleep_ms(300 - 10);
-            send_midi_note_off(note + 2, 0);
-            sleep_ms(10);
+        // simple debug output: list pressed keys
+        bool any = false;
+        for (int r = 0; r < MATRIX_ROWS; ++r) {
+            for (int c = 0; c < MATRIX_COLS; ++c) {
+                if (keys[r][c]) {
+                    printf("Key pressed: row %d col %d\n", r, c);
+                    any = true;
+                }
+            }
         }
-        send_midi_note_on(84, 100);
-        sleep_ms(1200);
-        send_midi_note_off(84, 0);
+        if (!any) {
+            // optional heartbeat
+            printf("No keys\n");
+        }
 
-        // for (int i = 0; i < 8; i++) {
-        //         send_midi_note_on(67 + i, 100);
-        //         sleep_ms(500);
-        //         send_midi_note_off(67 + i, 0);
-        //         sleep_ms(500);
-        // }
-
+        sleep_ms(100);
     }
 }
