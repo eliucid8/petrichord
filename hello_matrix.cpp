@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <cstdint>
+#include <algorithm>
 
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
@@ -53,6 +54,13 @@ int main()
     configure_matrix_pins(row_pins, col_pins);
 
     bool keys[MATRIX_ROWS][MATRIX_COLS] = {0};
+    bool last[MATRIX_ROWS][MATRIX_COLS] = {0};
+    uint8_t notes[MATRIX_ROWS][MATRIX_COLS] = {
+        {60, 62},
+        {64, 65},
+        {67, 69},
+        {71, 72},
+    };
 
     // PIO Blinking example
     // PIO pio = pio0;
@@ -77,17 +85,18 @@ int main()
         bool any = false;
         for (int r = 0; r < MATRIX_ROWS; ++r) {
             for (int c = 0; c < MATRIX_COLS; ++c) {
-                if (keys[r][c]) {
+                if (keys[r][c] && !last[r][c]) {
                     printf("Key pressed: row %d col %d\n", r, c);
-                    any = true;
+                    send_midi_note_on(notes[r][c], 100);
+                }
+                if (!keys[r][c] && last[r][c]) {
+                    printf("Key released: row %d col %d\n", r, c);
+                    send_midi_note_off(notes[r][c], 0);
                 }
             }
         }
-        if (!any) {
-            // optional heartbeat
-            printf("No keys\n");
-        }
-
-        sleep_ms(100);
+        
+        std::swap(keys, last);
+        sleep_ms(6);
     }
 }
