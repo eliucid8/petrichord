@@ -1,0 +1,7 @@
+.program quadrature
+
+; poll the clock, check if the other wire is high or low, write to fifo?
+.wrap_target
+
+
+.wrap

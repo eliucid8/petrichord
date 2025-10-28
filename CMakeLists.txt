@@ -38,6 +38,7 @@ pico_sdk_init()
 add_executable(hello_matrix 
     hello_matrix.cpp 
     input/key_matrix.cpp
+    input/fake_strum_irq.cpp
 )
 
 pico_set_program_name(hello_matrix "hello_matrix")
@@ -64,6 +65,7 @@ target_include_directories(hello_matrix PRIVATE
 target_link_libraries(hello_matrix 
         hardware_pio
         hardware_timer
+        hardware_gpio
         )
 
 pico_add_extra_outputs(hello_matrix)

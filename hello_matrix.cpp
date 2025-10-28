@@ -8,26 +8,11 @@
 #include "hardware/uart.h"
 
 #include "input/key_matrix.h"
+#include "input/fake_strum_irq.h"
 
 #include "blink.pio.h"
 
 #define LED_PIN 15
-
-void blink_pin_forever(PIO pio, uint8_t sm, uint8_t offset, uint8_t pin, uint8_t freq) {
-    blink_program_init(pio, sm, offset, pin);
-    pio_sm_set_enabled(pio, sm, true);
-
-    printf("Blinking pin %d at %d Hz\n", pin, freq);
-
-    // PIO counter program takes 3 more cycles in total than we pass as
-    // input (wait for n + 1; mov; jmp)
-    pio->txf[sm] = (125000000 / (2 * freq)) - 3;
-}
-
-int64_t alarm_callback(alarm_id_t id, void *user_data) {
-    // Put your timeout handler code in here
-    return 0;
-}
 
 void send_midi_note_on(uint8_t note, uint8_t velocity) {
     uint8_t msg[3] = {0x90, note, velocity};
@@ -41,6 +26,14 @@ void send_midi_note_off(uint8_t note, uint8_t velocity) {
     for (int i = 0; i < 3; i++) {
         uart_putc(uart0, msg[i]);
     }
+}
+
+void receive_strum(std::vector<bool> state) {
+    printf("strum state: ");
+    for(bool key : state) {
+        printf("%d", key);
+    } 
+    printf("\n");
 }
 
 int main()
@@ -68,21 +61,8 @@ int main()
         {71, 72},
     };
 
-    // // PIO Blinking example
-    // PIO pio = pio0;
-    // uint8_t offset = pio_add_program(pio, &blink_program);
-    // printf("Loaded program at %d\n", offset);
-    
-    // #ifdef PICO_DEFAULT_LED_PIN
-    // blink_pin_forever(pio, 0, offset, PICO_DEFAULT_LED_PIN, 3);
-    // #else
-    // blink_pin_forever(pio, 0, offset, 6, 3);
-    // #endif
-    // // For more pio examples see https://github.com/raspberrypi/pico-examples/tree/master/pio
-
-    // Timer example code - This example fires off the callback after 2000ms
-    // add_alarm_in_ms(2000, alarm_callback, NULL, false);
-    // For more examples of timer use see https://github.com/raspberrypi/pico-examples/tree/master/timer
+    fake_strum_irq::FakeStrumIrq fake_strum;
+    fake_strum.set_callback(receive_strum);
 
     while (true) {
         poll_matrix_once(row_pins, col_pins, keys);
