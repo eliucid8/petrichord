@@ -10,4 +10,6 @@ Authors: Raquel Cervantes-Espinosa, Annabel Lee, Sam Ledden, and Eric Liu
     - [ ] investigate polyphony in daisy seed
     - [ ] look at doing it in pio
     
+- [ ] mock out strum plate
+
 - [ ] 

@@ -11,6 +11,8 @@
 
 #include "blink.pio.h"
 
+#define LED_PIN 15
+
 void blink_pin_forever(PIO pio, uint8_t sm, uint8_t offset, uint8_t pin, uint8_t freq) {
     blink_program_init(pio, sm, offset, pin);
     pio_sm_set_enabled(pio, sm, true);
@@ -44,10 +46,14 @@ void send_midi_note_off(uint8_t note, uint8_t velocity) {
 int main()
 {
     stdio_init_all();
+
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_put(LED_PIN, 1);
     
     uart_init(uart0, 31250);
     gpio_set_function(0, GPIO_FUNC_UART); // TX on GP0
-
+    
     const uint8_t row_pins[MATRIX_ROWS] = {2, 3, 4, 5};
     const uint8_t col_pins[MATRIX_COLS] = {8, 9};
 
@@ -62,7 +68,7 @@ int main()
         {71, 72},
     };
 
-    // PIO Blinking example
+    // // PIO Blinking example
     // PIO pio = pio0;
     // uint8_t offset = pio_add_program(pio, &blink_program);
     // printf("Loaded program at %d\n", offset);
@@ -72,7 +78,7 @@ int main()
     // #else
     // blink_pin_forever(pio, 0, offset, 6, 3);
     // #endif
-    // For more pio examples see https://github.com/raspberrypi/pico-examples/tree/master/pio
+    // // For more pio examples see https://github.com/raspberrypi/pico-examples/tree/master/pio
 
     // Timer example code - This example fires off the callback after 2000ms
     // add_alarm_in_ms(2000, alarm_callback, NULL, false);
