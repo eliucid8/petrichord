@@ -36,12 +36,19 @@ void FakeStrumIrq::on_gpio(uint /*gpio*/, uint32_t /*events*/) {
 	auto cb = callback_;
 	if (!cb) return;
 
-	std::vector<bool> states;
-	states.reserve(sizeof(kPins) / sizeof(kPins[0]));
+	int states_index = 0;
+	bool state_changed = false;
 	for (uint pin : kPins) {
-		states.push_back(!gpio_get(pin));
+		bool new_state = !gpio_get(pin);
+		if(states[states_index] != new_state) {
+			state_changed = true;
+			states[states_index] = new_state;
+		}
+		++states_index;
 	}
-	cb(states);
+	if(state_changed) {
+		cb(states);
+	}
 }
 
 FakeStrumIrq::FakeStrumIrq(Callback cb) {
@@ -87,6 +94,8 @@ void FakeStrumIrq::init_internal() {
 
 	restore_interrupts(save);
 	initialized_ = true;
+	
+	states = {false, false, false, false};
 }
 
 void FakeStrumIrq::deinit_internal() {

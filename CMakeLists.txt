@@ -39,6 +39,7 @@ add_executable(hello_matrix
     hello_matrix.cpp 
     input/key_matrix.cpp
     input/fake_strum_irq.cpp
+    controllers/chord_controller.cpp
 )
 
 pico_set_program_name(hello_matrix "hello_matrix")
