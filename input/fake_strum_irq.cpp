@@ -5,11 +5,11 @@
 #include "hardware/sync.h"
 #include "pico/stdlib.h"
 
-namespace {
-
+namespace { 
+ 
 // Pins monitored (GP18–GP21)
 constexpr uint kPins[] = {18, 19, 20, 21};
-
+ 
 void set_irqs_enabled(bool enable) {
 	constexpr uint32_t mask = GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL;
 	for (uint pin : kPins) {
