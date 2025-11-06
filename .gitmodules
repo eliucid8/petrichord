@@ -1,10 +1,6 @@
-[submodule "DaisySP"]
-        path = seed/DaisySP
-        url = https://github.com/electro-smith/DaisySP
-        branch = master
-[submodule "stmlib"]
-        path = seed/stmlib
-        url = https://github.com/pichenettes/stmlib
-[submodule "libDaisy"]
-        path = seed/libDaisy
-        url = https://github.com/electro-smith/libDaisy
+[submodule "seed/libDaisy"]
+	path = seed/libDaisy
+	url = https://github.com/electro-smith/libDaisy
+[submodule "seed/DaisySP"]
+	path = seed/DaisySP
+	url = https://github.com/electro-smith/DaisySP
