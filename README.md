@@ -13,15 +13,28 @@ use the rpi pico extension to create a new project in the pico folder. The .vsco
 ## seed
 follow the README there. it's good, I promise
 
-### TODO:
+# TODO:
+## I/O
 - [ ] Format key matrix scanning into class/object
     - [ ] add state for debouncing?
     - [ ] investigate doing it in pio
 
 - [ ] make midi sending robust 
+    - [ ] deduplicate extra sends on oscope (maybe a debounce issue?)
     - [ ] investigate polyphony in daisy seed
     - [ ] look at doing it in pio
     
-- [ ] mock out strum plate
+- [x] mock out strum plate as keyboard switches
+- [ ] connect cap sensor
 
-- [ ] 
+- [ ] integrate imu
+
+## Theory
+- [ ] add scale support
+- [ ] re-interrogate the note struct (add support for shifting?)
+
+## Infra
+- [ ] roll back libdaisy versions to versions happy with pluck.cpp
+
+## Organization
+- [ ] move pio into a folder
