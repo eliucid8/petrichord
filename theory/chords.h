@@ -1,5 +1,4 @@
-#ifndef chords_DEFINED
-#define chords_DEFINED
+#pragma once
 
 #include <cstdint>
 #include <vector>
@@ -11,8 +10,17 @@ const std::vector<uint8_t> MAJOR_INTERVALS = {4, 3, 5};
 const std::vector<uint8_t> MINOR_INTERVALS = {3, 4, 5};
 const std::vector<uint8_t> DIMINISHED_INTERVALS = {3, 3, 3, 3};
 const std::vector<uint8_t> AUGMENTED_INTERVALS = {3, 5, 4};
+const std::vector<uint8_t> DOMINANT_INTERVALS = {4, 3, 3, 2};
+const std::vector<uint8_t> M7_INTERVALS = {4, 3, 4, 1};
 
-std::vector<Note> generate_chord(uint8_t root, uint8_t velocity = 64, const std::vector<uint8_t> chord_intervals, uint8_t extent = 0, uint8_t inversion = 0) {
+// TODO: typedef vector<Note> as a chord?
+inline std::vector<Note> generate_chord(
+    uint8_t root, 
+    const std::vector<uint8_t> chord_intervals, 
+    uint8_t extent = 0, 
+    uint8_t inversion = 0, 
+    uint8_t velocity = 64
+) {
     std::vector<Note> chord;
     // default size is 1 octave.
     if(extent == 0) {
@@ -22,7 +30,7 @@ std::vector<Note> generate_chord(uint8_t root, uint8_t velocity = 64, const std:
     // set root of chord to the correct inversion
     if(inversion > 0) {
         inversion %= chord_intervals.size();
-        for(int i = 0; i < inversion) {
+        for(int i = 0; i < inversion; i++) {
             root += chord_intervals[i];
         }
     }
@@ -36,4 +44,3 @@ std::vector<Note> generate_chord(uint8_t root, uint8_t velocity = 64, const std:
     
     return chord;
 }
-#endif

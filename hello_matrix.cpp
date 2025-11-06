@@ -9,32 +9,14 @@
 
 #include "input/key_matrix.h"
 #include "input/fake_strum_irq.h"
+#include "controllers/chord_controller.h"
+#include "output/midi_messenger.h"
 
 #include "blink.pio.h"
 
+static ChordController* g_chord_controller = nullptr;
+
 #define LED_PIN 15
-
-void send_midi_note_on(uint8_t note, uint8_t velocity) {
-    uint8_t msg[3] = {0x90, note, velocity};
-    for (int i = 0; i < 3; i++) {
-        uart_putc(uart0, msg[i]);
-    }
-}
-
-void send_midi_note_off(uint8_t note, uint8_t velocity) {
-    uint8_t msg[3] = {0x80, note, velocity};
-    for (int i = 0; i < 3; i++) {
-        uart_putc(uart0, msg[i]);
-    }
-}
-
-void receive_strum(std::vector<bool> state) {
-    printf("strum state: ");
-    for(bool key : state) {
-        printf("%d", key);
-    } 
-    printf("\n");
-}
 
 int main()
 {
@@ -61,8 +43,16 @@ int main()
         {71, 72},
     };
 
+    MidiMessenger midi_messenger(uart0);
+    ChordController chord_controller(&midi_messenger);
+    g_chord_controller = &chord_controller;
+
     fake_strum_irq::FakeStrumIrq fake_strum;
-    fake_strum.set_callback(receive_strum);
+    fake_strum.set_callback([](std::vector<bool> states) {
+        if (g_chord_controller) {
+            g_chord_controller->handle_strum(states);
+        }
+    });
 
     while (true) {
         poll_matrix_once(row_pins, col_pins, keys);
@@ -72,12 +62,13 @@ int main()
         for (int r = 0; r < MATRIX_ROWS; ++r) {
             for (int c = 0; c < MATRIX_COLS; ++c) {
                 if (keys[r][c] && !last[r][c]) {
-                    printf("Key pressed: row %d col %d\n", r, c);
-                    send_midi_note_on(notes[r][c], 100);
+                    // printf("Key pressed: row %d col %d\n", r, c);
+                    // send_midi_note_on(notes[r][c], 100);
+                    g_chord_controller->update_chord(generate_chord(notes[r][c], MAJOR_INTERVALS, 4));
                 }
                 if (!keys[r][c] && last[r][c]) {
-                    printf("Key released: row %d col %d\n", r, c);
-                    send_midi_note_off(notes[r][c], 0);
+                    // printf("Key released: row %d col %d\n", r, c);
+                    // send_midi_note_off(notes[r][c], 0);
                 }
             }
         }

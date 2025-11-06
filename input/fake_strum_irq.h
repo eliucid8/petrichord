@@ -43,6 +43,7 @@ private:
 	// State
 	volatile Callback callback_ = nullptr;
 	bool initialized_ = false;
+	std::vector<bool> states;
 };
 
 }  // namespace fake_strum_irq
