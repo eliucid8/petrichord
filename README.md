@@ -2,6 +2,9 @@
 Authors: Raquel Cervantes-Espinosa, Annabel Lee, Sam Ledden, and Eric Liu
 
 # getting started
+after cloning:
+`git submodule update --init --recursive`
+
 ## project structure
 This monorepo contains the code for both the rpi and the seed.
 `cd` into the respective directories in order to build for each microcontroller.

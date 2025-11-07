@@ -4,3 +4,6 @@
 [submodule "seed/DaisySP"]
 	path = seed/DaisySP
 	url = https://github.com/electro-smith/DaisySP
+[submodule "pico/pico-extras"]
+	path = pico/pico-extras
+	url = git@github.com:raspberrypi/pico-extras.git
