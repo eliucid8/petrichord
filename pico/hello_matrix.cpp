@@ -1,3 +1,4 @@
+#include <memory>
 #include <stdio.h>
 #include <cstdint>
 #include <algorithm>
@@ -7,10 +8,10 @@
 #include "hardware/timer.h"
 #include "hardware/uart.h"
 
-#include "input/key_matrix.h"
-#include "input/fake_strum_irq.h"
+#include "io/key_matrix.h"
+#include "io/strum_irq.h"
 #include "controllers/chord_controller.h"
-#include "output/midi_messenger.h"
+#include "io/midi_messenger.h"
 
 #include "blink.pio.h"
 
@@ -47,8 +48,8 @@ int main()
     ChordController chord_controller(&midi_messenger);
     g_chord_controller = &chord_controller;
 
-    fake_strum_irq::FakeStrumIrq fake_strum;
-    fake_strum.set_callback([](std::vector<bool> states) {
+    std::unique_ptr<strum_irq::StrumIrq> fake_strum = strum_irq::CreateFakeStrumIrq(nullptr);
+    fake_strum->set_callback([](std::vector<bool> states) {
         if (g_chord_controller) {
             g_chord_controller->handle_strum(states);
         }

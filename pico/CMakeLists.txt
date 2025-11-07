@@ -37,8 +37,9 @@ pico_sdk_init()
 
 add_executable(hello_matrix 
     hello_matrix.cpp 
-    input/key_matrix.cpp
-    input/fake_strum_irq.cpp
+    io/key_matrix.cpp
+    io/fake_strum_irq.cpp
+    # io/cap_strum_irq.cpp
     controllers/chord_controller.cpp
 )
 
@@ -67,6 +68,7 @@ target_link_libraries(hello_matrix
         hardware_pio
         hardware_timer
         hardware_gpio
+        hardware_spi
         )
 
 pico_add_extra_outputs(hello_matrix)

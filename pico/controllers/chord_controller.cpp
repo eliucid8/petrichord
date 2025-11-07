@@ -15,7 +15,7 @@ void ChordController::handle_strum(std::vector<bool> strum_state) {
             held_down.push_back(chord[i]);
         }
     }
-    // // DEBUG
+    // DEBUG
     for(Note n : held_down) {
         printf("%d ", n.pitch);
     }
@@ -23,7 +23,7 @@ void ChordController::handle_strum(std::vector<bool> strum_state) {
     
     // send note ons/offs for everything that changed
     // N^2 algorithm. sue me.
-    // FIXME: I know the optimal algorithm uses hashmaps gah
+    // OPTIMIZE: I know the optimal algorithm uses hashmaps gah
     for(int i = 0; i < notes.size(); ++i) {
         Note note = notes[i];
         auto it = std::find(held_down.begin(), held_down.end(), note);
