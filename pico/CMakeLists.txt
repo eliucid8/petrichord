@@ -52,7 +52,9 @@ pico_generate_pio_header(hello_matrix ${CMAKE_CURRENT_LIST_DIR}/blink.pio)
 
 # Add the standard library to the build
 target_link_libraries(hello_matrix
-        pico_stdlib)
+        pico_stdlib
+        pico_audio_i2s
+        )
 
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(hello_matrix 0)
