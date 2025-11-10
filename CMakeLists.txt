@@ -40,6 +40,7 @@ add_executable(hello_matrix
     input/key_matrix.cpp
     input/fake_strum_irq.cpp
     controllers/chord_controller.cpp
+    controllers/imu_controller.cpp
 )
 
 pico_set_program_name(hello_matrix "hello_matrix")
@@ -67,6 +68,12 @@ target_link_libraries(hello_matrix
         hardware_pio
         hardware_timer
         hardware_gpio
+        hardware_i2c
         )
 
 pico_add_extra_outputs(hello_matrix)
+
+add_subdirectory(controllers/BNO055_driver)
+target_link_libraries(hello_matrix
+    pico_bno055
+)
