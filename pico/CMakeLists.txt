@@ -43,6 +43,7 @@ add_executable(hello_matrix
     # io/cap_strum_irq.cpp
     controllers/chord_controller.cpp
     io/mic_input.cpp
+    controllers/imu_controller.cpp
 )
 
 pico_set_program_name(hello_matrix "hello_matrix")
@@ -76,6 +77,7 @@ target_link_libraries(hello_matrix
         hardware_gpio
         hardware_spi
         hardware_adc
+        hardware_i2c
         )
 
 pico_add_extra_outputs(hello_matrix)
@@ -83,4 +85,9 @@ pico_add_extra_outputs(hello_matrix)
 set_target_properties(hello_matrix 
 PROPERTIES CXX_STANDARD 17 
 CXX_STANDARD_REQUIRED YES
+)
+
+add_subdirectory(controllers/BNO055_driver)
+target_link_libraries(hello_matrix
+    pico_bno055
 )

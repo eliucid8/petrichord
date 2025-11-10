@@ -7,6 +7,7 @@
 #include "hardware/pio.h"
 #include "hardware/timer.h"
 #include "hardware/uart.h"
+#include "hardware/i2c.h"
 
 #include "io/key_matrix.h"
 #include "io/strum_irq.h"
@@ -14,12 +15,18 @@
 #include "io/midi_messenger.h"
 #include "io/mic_input.h"
 
+#include "controllers/imu_controller.h"
 
 #include "blink.pio.h"
 
 static ChordController* g_chord_controller = nullptr;
 
 #define LED_PIN 15
+
+// I2C Constants
+#define I2C_CHANNEL_ONE i2c1
+#define IMU_SDA 26
+#define IMU_SCL 27
 
 int main()
 {
@@ -30,10 +37,19 @@ int main()
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_put(LED_PIN, 1);
+    // gpio_put(LED_PIN, 1);
     
     uart_init(uart0, 31250);
     gpio_set_function(0, GPIO_FUNC_UART); // TX on GP0
+
+    // I2C Initialization
+    i2c_init(I2C_CHANNEL_ONE, 400 * 1000);  // 400 kHz i2c1 channel
+    gpio_init(IMU_SCL);
+    gpio_init(IMU_SDA);
+    gpio_set_function(IMU_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(IMU_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(IMU_SDA);
+    gpio_pull_up(IMU_SCL);
     
     const uint8_t row_pins[MATRIX_ROWS] = {2, 3, 4, 5};
     const uint8_t col_pins[MATRIX_COLS] = {8, 9};
@@ -51,6 +67,34 @@ int main()
 
     MidiMessenger midi_messenger(uart0);
     ChordController chord_controller(&midi_messenger);
+
+    // IMU Controller Initialization
+    IMU_Controller imu_controller;
+
+    if(imu_controller.init(I2C_CHANNEL_ONE)) {
+
+        // Demo code
+
+        while(true) {
+            // Read vector
+            struct imu_gravity_vector g;
+            imu_controller.readGravityVector(&g);
+
+            // Observationally, corresponds to imu being rotated 90 degrees on one axis
+            if(g.z < 2 && g.z > -2) {
+                gpio_put(LED_PIN, 1);
+            } else {
+                gpio_put(LED_PIN, 0);
+            }
+
+            // imu_controller.debugPrint();
+
+            sleep_ms(100);
+        }
+    }
+
+    gpio_put(LED_PIN, 1);
+
     g_chord_controller = &chord_controller;
 
     std::unique_ptr<strum_irq::StrumIrq> fake_strum = strum_irq::CreateFakeStrumIrq(nullptr);
