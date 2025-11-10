@@ -12,6 +12,8 @@
 #include "io/strum_irq.h"
 #include "controllers/chord_controller.h"
 #include "io/midi_messenger.h"
+#include "io/mic_input.h"
+
 
 #include "blink.pio.h"
 
@@ -22,6 +24,9 @@ static ChordController* g_chord_controller = nullptr;
 int main()
 {
     stdio_init_all();
+
+    MicADC mic(/*adc_num=*/0, /*vref_volts=*/3.3f);
+    mic.init();
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -56,6 +61,8 @@ int main()
     });
 
     while (true) {
+        printf("%.3f\n", mic.read_volts());  // for Python plotter
+
         poll_matrix_once(row_pins, col_pins, keys);
 
         // simple debug output: list pressed keys
@@ -75,6 +82,6 @@ int main()
         }
         
         std::swap(keys, last);
-        sleep_ms(6);
+        sleep_ms(10 /*6*/);
     }
 }

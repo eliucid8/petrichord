@@ -7,3 +7,6 @@
 [submodule "pico/pico-extras"]
 	path = pico/pico-extras
 	url = git@github.com:raspberrypi/pico-extras.git
+[submodule "pico/pico_fft"]
+	path = pico/pico_fft
+	url = git@github.com:Googool/pico_fft.git

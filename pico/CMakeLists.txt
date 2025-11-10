@@ -42,6 +42,7 @@ add_executable(hello_matrix
     io/fake_strum_irq.cpp
     # io/cap_strum_irq.cpp
     controllers/chord_controller.cpp
+    io/mic_input.cpp
 )
 
 pico_set_program_name(hello_matrix "hello_matrix")
@@ -60,10 +61,12 @@ target_link_libraries(hello_matrix
 pico_enable_stdio_uart(hello_matrix 0)
 pico_enable_stdio_usb(hello_matrix 1)
 
+
 # Add the standard include files to the build
 target_include_directories(hello_matrix PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/input
+        ${CMAKE_CURRENT_LIST_DIR}/io
 )
 
 # Add any user requested libraries
@@ -72,6 +75,12 @@ target_link_libraries(hello_matrix
         hardware_timer
         hardware_gpio
         hardware_spi
+        hardware_adc
         )
 
 pico_add_extra_outputs(hello_matrix)
+
+set_target_properties(hello_matrix 
+PROPERTIES CXX_STANDARD 17 
+CXX_STANDARD_REQUIRED YES
+)
