@@ -25,7 +25,7 @@ int main()
 {
     stdio_init_all();
 
-    MicADC mic(/*adc_num=*/0, /*vref_volts=*/3.3f);
+    mic_input mic(/*adc_num=*/2, /*vref_volts=*/3.3f);
     mic.init();
 
     gpio_init(LED_PIN);

@@ -28,6 +28,7 @@ set(PICO_BOARD pico2_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
+include(pico_fft_import.cmake)
 
 project(hello_matrix C CXX ASM)
 
@@ -67,6 +68,7 @@ target_include_directories(hello_matrix PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/input
         ${CMAKE_CURRENT_LIST_DIR}/io
+        ${CMAKE_CURRENT_LIST_DIR}/pico_fft/src
 )
 
 # Add any user requested libraries
@@ -76,6 +78,7 @@ target_link_libraries(hello_matrix
         hardware_gpio
         hardware_spi
         hardware_adc
+        pico_fft
         )
 
 pico_add_extra_outputs(hello_matrix)

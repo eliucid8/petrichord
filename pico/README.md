@@ -6,3 +6,5 @@ cd -
 ```
 
 and then clean/reconfigure cmake
+
+make sure you also build the pico sdk, extras, and fft libraries.
