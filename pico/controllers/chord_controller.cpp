@@ -16,10 +16,10 @@ void ChordController::handle_strum(std::vector<bool> strum_state) {
         }
     }
     // DEBUG
-    for(Note n : held_down) {
-        printf("%d ", n.pitch);
-    }
-    printf("\n");
+    // for(Note n : held_down) {
+    //     printf("%d ", n.pitch);
+    // }
+    // printf("\n");
     
     // send note ons/offs for everything that changed
     // N^2 algorithm. sue me.
@@ -44,7 +44,7 @@ void ChordController::handle_strum(std::vector<bool> strum_state) {
         midi->send_midi_note_on(new_note);
         notes.push_back(new_note);
     }
-    printf(print_notes().c_str());
+    // printf(print_notes().c_str());
 }
 
 // TODO: figure out what happens when you're still holding a strum down but you change the chord
