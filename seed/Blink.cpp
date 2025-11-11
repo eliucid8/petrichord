@@ -113,14 +113,21 @@ void HandleMidiMessage(MidiEvent m)
             auto msg = m.AsNoteOn();
             if(msg.velocity > 0)
             {
-                Voice* v = FindFreeVoice();
+                // first check to see if the note is already being played. deduplicates note ons
+                Voice* v = FindVoiceByNote(msg.note);
+                if(v == nullptr) {
+                    v = FindFreeVoice();
+                }
                 v->NoteOn(msg.note, msg.velocity);
+                hw.PrintLine("ON\t%d\t%d", msg.note, msg.velocity);
             }
             else
             {
                 Voice* v = FindVoiceByNote(msg.note);
-                if(v)
+                if(v) {
                     v->NoteOff();
+                    hw.PrintLine("OFF\t%d", msg.note);
+                }
             }
             break;
         }
@@ -130,8 +137,10 @@ void HandleMidiMessage(MidiEvent m)
             auto msg = m.AsNoteOff();
             // hw.SetLed(true);
             Voice* v = FindVoiceByNote(msg.note);
-            if(v)
+            if(v) {
                 v->NoteOff();
+                hw.PrintLine("OFF\t%d", msg.note);
+            }
             break;
         }
 
@@ -211,17 +220,12 @@ int main(void)
     hw.PrintLine("UART MIDI PolySynth Ready! 32 voices active.");
     // v1->NoteOff();
 
-    Voice *v1 = FindFreeVoice();
-    Voice *v2 = FindFreeVoice();
-    v1->NoteOn(60, 127);
-    v2->NoteOn(66, 127);
 
     while(1)
     {
         midi_uart.Listen();
 
         while(midi_uart.HasEvents()) {
-            
             HandleMidiMessage(midi_uart.PopEvent());
         }
 
