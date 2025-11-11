@@ -13,6 +13,9 @@
 #include "controllers/chord_controller.h"
 #include "io/midi_messenger.h"
 #include "io/mic_input.h"
+extern "C" {
+#include "pico/fft.h"
+}
 
 
 #include "blink.pio.h"
@@ -21,12 +24,13 @@ static ChordController* g_chord_controller = nullptr;
 
 #define LED_PIN 15
 
+
 int main()
 {
     stdio_init_all();
 
-    mic_input mic(/*adc_num=*/2, /*vref_volts=*/3.3f);
-    mic.init();
+    // mic_input mic(/*adc_num=*/2, /*vref_volts=*/3.3f);
+    // mic.init(); 
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -60,8 +64,23 @@ int main()
         }
     });
 
+    MicPitchDetector pitch;
+    pitch.init(); 
+    const float min_sound = 23000.0f; //smallest note
+
     while (true) {
-        printf("%.3f\n", mic.read_volts());  // for Python plotter
+        //mic:
+        
+        auto pr = pitch.update();  //updates mic info
+        if(pr.amplitude >= min_sound){
+            printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
+            pr.freq_hz, pr.name, pr.amplitude);
+        } 
+        else{
+            printf(" no pitch / too quiet\n");
+        }
+
+        //printf("%.3f\n", mic.read_volts());  // prints mic output in serial port
 
         poll_matrix_once(row_pins, col_pins, keys);
 
