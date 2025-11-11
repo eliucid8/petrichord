@@ -1,29 +1,38 @@
 #pragma once
-#include <cstdint>   // uint8_t, uint16_t
-#include <cstddef>   // size_t
+#include <cstdint>
 
-/**
- * Simple API for reading an analog microphone on a Pico ADC pin.
- * Default: ADC0 on GP26, vref = 3.3 V.
- */
-class MicADC {
+// Hz-range bin + amplitude (amplitude is updated every frame)
+struct PitchBin {
+    const char* name;
+    int         freq_min;  
+    int         freq_max;   
+    float       amplitude; 
+};
+
+struct PitchResult {
+    float       freq_hz;    // center of dominant bin (quick estimate)
+    float       amplitude;  // amplitude of dominant bin
+    int         index;      // index into bins
+    const char* name;       // name of dominant bin
+};
+
+// NOTE: these are now NON-const so we can write amplitudes
+extern PitchBin DEFAULT_PITCH_BINS[];
+extern const int DEFAULT_PITCH_BIN_COUNT;
+
+class MicPitchDetector {
 public:
-    MicADC(uint8_t adc_num = 0, float vref_volts = 3.3f);
+    // If bins==nullptr or bin_count<=0, uses DEFAULT_PITCH_BINS in-place (mutable).
+    // If you pass your own bins, we copy them into an internal mutable buffer.
+    MicPitchDetector(const PitchBin* bins = nullptr, int bin_count = 0);
 
-    void init();
-
-    // 12-bit raw sample (0..4095)
-    uint16_t read_raw() const;
-
-    float raw_to_volts(uint16_t raw) const;
-    
-    float read_volts() const;
-
-    // Fill a buffer with N raw samples (blocking)
-    void read_block(uint16_t* dst, size_t n) const;
+    void init();                 // calls pico_fft::fft_setup()
+    PitchResult update();        // capture + FFT + fill amplitudes + pick dominant
+    void print_bins() const;     // debug helper
 
 private:
-    uint8_t  adc_num_;  // 0..2 → GP26/27/28
-    unsigned adc_pin_;  // 26/27/28
-    float    vref_;     // volts
+    // We always keep a mutable, internal copy so amplitudes can be written.
+    static constexpr int kMaxBins = 32;
+    PitchBin bins_[kMaxBins];
+    int      bin_count_;
 };

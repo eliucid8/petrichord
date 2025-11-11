@@ -14,6 +14,9 @@
 #include "controllers/chord_controller.h"
 #include "io/midi_messenger.h"
 #include "io/mic_input.h"
+extern "C" {
+#include "pico/fft.h"
+}
 
 #include "controllers/imu_controller.h"
 
@@ -28,7 +31,7 @@ static ChordController* g_chord_controller = nullptr;
 #define IMU_SDA 26
 #define IMU_SCL 27
 
-#define PRINT_AUDIO false
+#define PRINT_AUDIO true
 #define PRINT_IMU false
 #define PRINT_KEYS true
 
@@ -107,14 +110,27 @@ int main()
         {67, 69},
         {71, 72},
     };
+
+    MicPitchDetector pitch;
+    pitch.init(); 
+    const float min_sound = 23000.0f; //smallest note
+
     
 
     int loop_counter = 0;
     while(true) {
-        if(PRINT_AUDIO) {
-            printf("%.3f\n", mic.read_volts());  // for Python plotter
-        }
+        auto pr = pitch.update();  //updates mic info
 
+        if(PRINT_AUDIO) {
+            if(pr.amplitude >= min_sound){
+                printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
+                pr.freq_hz, pr.name, pr.amplitude);
+            } 
+            else{
+                printf(" no pitch / too quiet\n");
+            }
+        }
+        
         // matrix stuff
         poll_matrix_once(row_pins, col_pins, keys);
 
