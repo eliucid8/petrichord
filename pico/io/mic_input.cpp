@@ -104,4 +104,11 @@ Notes:
     and stores the results in the provded bins.
 
 - Amp: sum of magnitudes across all FFT bins 
+
+- samples per second??? 
+- how to change the sample rate??? 
+- Kaiser window? 
+
+To do: 
+- ask Annie about a better mic and such 
 */

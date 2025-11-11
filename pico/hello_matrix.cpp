@@ -73,8 +73,8 @@ int main()
         
         auto pr = pitch.update();  //updates mic info
         if(pr.amplitude >= min_sound){
-            printf("Pitch frequency: ~%.1f Hz \n",
-            pr.freq_hz);
+            printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
+            pr.freq_hz, pr.name, pr.amplitude);
         } 
         else{
             printf(" no pitch / too quiet\n");
