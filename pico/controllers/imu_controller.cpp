@@ -41,7 +41,7 @@ bool IMU_Controller::readGravityVector(struct imu_gravity_vector *dst) {
     s8 err = bno055_convert_float_accel_xyz_msq(&accelData);
 
     if(err) {
-        printf("IMU_Controller: bno055 data read failiure.\n");
+        printf("IMU_Controller: bno055 data read failiure %d\n", err);
         return false;
     }
 

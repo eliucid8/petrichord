@@ -118,7 +118,7 @@ private:
 			int64_t delta = absolute_time_diff_us(state_last_changed[states_index], current_time);
 			state_last_changed[states_index] = current_time;
 			if(states[states_index] != new_state && delta > DEBOUNCE_TIME) {
-				printf("%ld ", delta);
+				// printf("%ld ", delta);
 				state_changed = true;
 				states[states_index] = new_state;
 			}
@@ -127,7 +127,7 @@ private:
 		if(state_changed) {
 			cb(states);
 		}
-		printf("\n");
+		// printf("\n");
 	}
 
 	void set_callback(strum_irq::Callback cb) {
