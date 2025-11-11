@@ -68,12 +68,7 @@ int main()
 {
     init_io();
 
-
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
-    // init microphone
-    MicADC mic(/*adc_num=*/2, /*vref_volts=*/3.3f);
-    mic.init();
-
     MidiMessenger midi_messenger(uart0);
     ChordController chord_controller(&midi_messenger);
 
@@ -118,6 +113,8 @@ int main()
     
 
     int loop_counter = 0;
+    int demo_imu_state = false;
+
     while(true) {
         auto pr = pitch.update();  //updates mic info
 
@@ -165,8 +162,16 @@ int main()
             // Observationally, corresponds to imu being rotated 90 degrees on one axis
             if(g.z < 2 && g.z > -2) {
                 gpio_put(LED_PIN, 1);
+                if (!demo_imu_state) {
+                    midi_messenger.send_midi_note_on(Note(36, 120));
+                    demo_imu_state = true;
+                }
             } else {
                 gpio_put(LED_PIN, 0);
+                if (demo_imu_state) {
+                    midi_messenger.send_midi_note_off(Note(36, 0));
+                    demo_imu_state = false;
+                }
             }
             if(PRINT_IMU) {
                 imu_controller.debugPrint();
