@@ -24,7 +24,7 @@ extern "C" {
 
 static ChordController* g_chord_controller = nullptr;
 
-#define LED_PIN 15
+#define LED_PIN 1
 
 // I2C Constants
 #define I2C_CHANNEL_ONE i2c1
