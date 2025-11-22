@@ -8,6 +8,7 @@
 #include "hardware/timer.h"
 #include "hardware/uart.h"
 #include "hardware/i2c.h"
+#include "theory/note.h"
 
 #include "io/key_matrix.h"
 #include "io/strum_irq.h"
