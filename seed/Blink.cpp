@@ -2,6 +2,7 @@
 #include "daisysp.h"
 
 using namespace daisy;
+using namespace daisy::seed;
 using namespace daisysp;
 
 //---------------------------------------------------------------------
@@ -13,6 +14,12 @@ constexpr int kNumVoices = 32;
 constexpr float kVelocityScale = 1.0f / 127.0f;
 
 uint8_t numVoicesActive = 0;
+
+// OPTIMIZE ugly global variables
+float attack = 0.01f;
+float decay = 0.1f;
+float sustain = 0.7f;
+float release = 0.3f;
 
 //---------------------------------------------------------------------
 // Voice definition
@@ -51,6 +58,10 @@ struct Voice
         gate     = true;
         note     = note_in;
         active   = true;
+        env.SetTime(ADSR_SEG_ATTACK, attack);
+        env.SetTime(ADSR_SEG_DECAY, decay);
+        env.SetSustainLevel(sustain);
+        env.SetTime(ADSR_SEG_RELEASE, release);
     }
 
     void NoteOff()
@@ -72,9 +83,6 @@ struct Voice
             active = false;
         }
 
-        // hw.SetLed(true);
-
-        // hw.SetLed(true);
         return sig;
     }
 };
@@ -198,8 +206,24 @@ RhythmTrack tracks[kNumTracks] = {
 //---------------------------------------------------------------------
 int main(void)
 {
+    // ----Hardware init----
     hw.Init();
     hw.StartLog();
+
+    // Create an array of AdcChannelConfig objects
+    const int NUM_ADC_CHANNELS = 3;
+    AdcChannelConfig my_adc_config[NUM_ADC_CHANNELS];
+    // Initialize.
+    // OPTIMIZE put this into functions or something
+    my_adc_config[0].InitSingle(A0);
+    my_adc_config[1].InitSingle(A1);
+    my_adc_config[2].InitSingle(A2);
+    my_adc_config[3].InitSingle(A3);
+    // Initialize the ADC peripheral with that configuration
+    hw.adc.Init(my_adc_config, NUM_ADC_CHANNELS);
+    // Start the ADC
+    hw.adc.Start();
+
 
     float sr = hw.AudioSampleRate();
     for(int i = 0; i < kNumVoices; i++)
@@ -228,6 +252,11 @@ int main(void)
         while(midi_uart.HasEvents()) {
             HandleMidiMessage(midi_uart.PopEvent());
         }
+
+        attack = 2 * hw.adc.GetFloat(0);
+        decay = hw.adc.GetFloat(1);
+        sustain = hw.adc.GetFloat(2);
+        release = 3 * hw.adc.GetFloat(3);
 
         System::Delay(1);
     }
