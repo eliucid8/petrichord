@@ -70,8 +70,8 @@ int main()
         pitch.bins_for_plotter();   //prints amplitude frequencies 
 
         if(pr.amplitude >= min_sound){
-            printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
-            pr.freq_hz, pr.name, pr.amplitude);
+            printf("Pitch frequency: ~%.1f Hz  bin=%s Midi=%d  amp=%.3f\n",
+            pr.freq_hz, pr.name, pr.midi, pr.amplitude);
         } 
         else{
             printf(" no pitch / too quiet\n");

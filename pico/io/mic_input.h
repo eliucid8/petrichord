@@ -4,9 +4,10 @@
 // Hz-range bin + amplitude (amplitude is updated every frame)
 struct PitchBin {
     const char* name;
-    double         freq_min;  
-    double         freq_max;   
+    double      freq_min;  
+    double      freq_max;   
     float       amplitude; 
+    int         midi;       //midi note number! 
 };
 
 struct PitchResult {
@@ -15,6 +16,7 @@ struct PitchResult {
     float       amplitude;  // amplitude of dominant bin
     int         index;      // index into bins
     const char* name;       // name of dominant bin
+    int         midi;       //midi note number! 
 };
 
 // NOTE: these are now NON-const so can write amplitudes
