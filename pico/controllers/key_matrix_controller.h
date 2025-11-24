@@ -1,20 +1,24 @@
 #pragma once
 
+#include <vector>
+#include <stdio.h>
+
 #include "pico/stdlib.h"
 
-#define MATRIX_ROWS 4
-#define MATRIX_COLS 2
-#define DEBOUNCE_THRESHOLD 1
-#define POLL_DELAY 30
-
 class KeyMatrixController {
-    public:
-        KeyMatrixController();
-        bool init(const uint8_t row_pins[MATRIX_ROWS], const uint8_t col_pins[MATRIX_COLS]);
-        bool poll_matrix(bool released[MATRIX_ROWS][MATRIX_COLS], bool pressed[MATRIX_ROWS][MATRIX_COLS]);
+    public:    
+        KeyMatrixController(size_t num_rows, size_t num_cols, int debounce_threshold = 1, int poll_delay=30);
+        bool init(const uint8_t row_pins[], const uint8_t col_pins[]);
+        bool poll_matrix(std::vector<std::vector<bool>>& released, std::vector<std::vector<bool>>& pressed);
         
+        const size_t NUM_ROWS;
+        const size_t NUM_COLS;
+        const int DEBOUNCE_THRESHOLD;
+        const int POLL_DELAY;
+
     private:
-        uint8_t row_pins_[MATRIX_ROWS];
-        uint8_t col_pins_[MATRIX_COLS];
-        bool last[MATRIX_ROWS][MATRIX_COLS];
+        // OPTIMIZE: use templating and set this size at compile time?
+        std::vector<uint8_t> _row_pins;
+        std::vector<uint8_t> _col_pins;
+        std::vector<std::vector<bool>> _last;
 };

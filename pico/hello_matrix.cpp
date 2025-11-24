@@ -33,9 +33,12 @@ static ChordController* g_chord_controller = nullptr;
 #define IMU_SDA 26
 #define IMU_SCL 27
 
-#define PRINT_AUDIO true
+#define PRINT_AUDIO false
 #define PRINT_IMU false
 #define PRINT_KEYS true
+
+#define CHORD_MATRIX_ROWS 4
+#define CHORD_MATRIX_COLS 2
 
 void init_io() {
     // init serial printing
@@ -70,10 +73,12 @@ int main()
 {
     init_io();
 
+
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
     MidiMessenger midi_messenger(uart0);
     ChordController chord_controller(&midi_messenger);
-    KeyMatrixController key_matrix_controller;
+    KeyMatrixController key_matrix_controller(4, 2, 1, 30);
+
 
 
     // IMU Controller Initialization
@@ -94,28 +99,25 @@ int main()
         }
     });
 
-
+    
     // matrix scan
-    const uint8_t row_pins[MATRIX_ROWS] = {2, 3, 4, 5};
-    const uint8_t col_pins[MATRIX_COLS] = {8, 9};
-    // configure_matrix_pins(row_pins, col_pins);
+    const uint8_t row_pins[4] = {2, 3, 4, 5};
+    const uint8_t col_pins[2] = {8, 9};
     key_matrix_controller.init(row_pins, col_pins);
+    
+    std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
+    std::vector<std::vector<bool>> released(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
 
-    bool pressed[MATRIX_ROWS][MATRIX_COLS] = {0};
-    bool released[MATRIX_ROWS][MATRIX_COLS] = {0};
-    // bool last[MATRIX_ROWS][MATRIX_COLS] = {0};
-    uint8_t notes[MATRIX_ROWS][MATRIX_COLS] = {
+    uint8_t notes[CHORD_MATRIX_ROWS][CHORD_MATRIX_COLS] = {
         {60, 62},
         {64, 65},
         {67, 69},
         {71, 72},
     };
-
+    
     MicPitchDetector pitch;
     pitch.init(); 
     const float min_sound = 23000.0f; //smallest note
-
-    
 
     int loop_counter = 0;
     int demo_imu_state = false;
@@ -137,8 +139,8 @@ int main()
         key_matrix_controller.poll_matrix(released, pressed);
 
         bool any = false;
-        for (int r = 0; r < MATRIX_ROWS; ++r) {
-            for (int c = 0; c < MATRIX_COLS; ++c) {
+        for (int r = 0; r < CHORD_MATRIX_ROWS; ++r) {
+            for (int c = 0; c < CHORD_MATRIX_COLS; ++c) {
                 if (pressed[r][c]) {
                     if(PRINT_KEYS) {
                         printf("Key pressed: row %d col %d\n", r, c);
