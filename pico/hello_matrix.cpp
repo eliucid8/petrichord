@@ -9,7 +9,7 @@
 #include "hardware/uart.h"
 #include "hardware/i2c.h"
 
-#include "io/key_matrix.h"
+// #include "io/key_matrix.h"
 #include "io/strum_irq.h"
 #include "controllers/chord_controller.h"
 #include "io/midi_messenger.h"
@@ -19,6 +19,7 @@ extern "C" {
 }
 
 #include "controllers/imu_controller.h"
+#include "controllers/key_matrix_controller.h"
 
 // #include "blink.pio.h"
 
@@ -71,6 +72,7 @@ int main()
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
     MidiMessenger midi_messenger(uart0);
     ChordController chord_controller(&midi_messenger);
+    KeyMatrixController key_matrix_controller;
 
 
     // IMU Controller Initialization
@@ -95,10 +97,12 @@ int main()
     // matrix scan
     const uint8_t row_pins[MATRIX_ROWS] = {2, 3, 4, 5};
     const uint8_t col_pins[MATRIX_COLS] = {8, 9};
-    configure_matrix_pins(row_pins, col_pins);
+    // configure_matrix_pins(row_pins, col_pins);
+    key_matrix_controller.init(row_pins, col_pins);
 
-    bool keys[MATRIX_ROWS][MATRIX_COLS] = {0};
-    bool last[MATRIX_ROWS][MATRIX_COLS] = {0};
+    bool pressed[MATRIX_ROWS][MATRIX_COLS] = {0};
+    bool released[MATRIX_ROWS][MATRIX_COLS] = {0};
+    // bool last[MATRIX_ROWS][MATRIX_COLS] = {0};
     uint8_t notes[MATRIX_ROWS][MATRIX_COLS] = {
         {60, 62},
         {64, 65},
@@ -129,19 +133,19 @@ int main()
         }
         
         // matrix stuff
-        poll_matrix_once(row_pins, col_pins, keys);
+        key_matrix_controller.poll_matrix(released, pressed);
 
         bool any = false;
         for (int r = 0; r < MATRIX_ROWS; ++r) {
             for (int c = 0; c < MATRIX_COLS; ++c) {
-                if (keys[r][c] && !last[r][c]) {
+                if (pressed[r][c]) {
                     if(PRINT_KEYS) {
                         printf("Key pressed: row %d col %d\n", r, c);
                     }
                     // send_midi_note_on(notes[r][c], 100);
                     g_chord_controller->update_chord(generate_chord(notes[r][c], MAJOR_INTERVALS, 4));
                 }
-                if (!keys[r][c] && last[r][c]) {
+                if (released[r][c]) {
                     if(PRINT_KEYS) {
                         printf("Key released: row %d col %d\n", r, c);
                     }
@@ -150,13 +154,13 @@ int main()
             }
         }
         // OPTIMIZE: we just need to deep copy the contents of keys into last, not swap them.
-        std::swap(keys, last);
+        // std::swap(keys, last);
 
         // update imu stuff every 100 ms
         if(loop_counter == 10) {
             loop_counter = 0;
             // Read vector
-            struct imu_gravity_vector g;
+            struct imu_xyz_data g;
             imu_controller.readGravityVector(&g);
 
             // Observationally, corresponds to imu being rotated 90 degrees on one axis
