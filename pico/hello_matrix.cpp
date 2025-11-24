@@ -21,6 +21,8 @@ extern "C" {
 
 #include "controllers/imu_controller.h"
 #include "controllers/key_matrix_controller.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 // #include "blink.pio.h"
 
@@ -36,6 +38,16 @@ static ChordController* g_chord_controller = nullptr;
 #define PRINT_AUDIO true
 #define PRINT_IMU false
 #define PRINT_KEYS true
+
+void blink_task(void *pvParameters) {
+    int ledState = 1;
+
+    while(1) {
+        ledState = ledState ^ 1;
+        gpio_put(LED_PIN, ledState);
+        vTaskDelay(500);
+    }
+}
 
 void init_io() {
     // init serial printing
@@ -120,6 +132,10 @@ int main()
     int loop_counter = 0;
     int demo_imu_state = false;
 
+    // FREE RTOS BLINKING TEST
+    xTaskCreate(blink_task, "Blink_LED", 256, NULL, 1, NULL);
+    vTaskStartScheduler( );
+
     while(true) {
         auto pr = pitch.update();  //updates mic info
 
@@ -166,13 +182,13 @@ int main()
 
             // Observationally, corresponds to imu being rotated 90 degrees on one axis
             if(g.z < 2 && g.z > -2) {
-                gpio_put(LED_PIN, 1);
+                // gpio_put(LED_PIN, 1);
                 if (!demo_imu_state) {
                     midi_messenger.send_midi_note_on(Note(36, 120));
                     demo_imu_state = true;
                 }
             } else {
-                gpio_put(LED_PIN, 0);
+                // gpio_put(LED_PIN, 0);
                 if (demo_imu_state) {
                     midi_messenger.send_midi_note_off(Note(36, 0));
                     demo_imu_state = false;
