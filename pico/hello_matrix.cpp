@@ -8,6 +8,7 @@
 #include "hardware/timer.h"
 #include "hardware/uart.h"
 #include "hardware/i2c.h"
+#include "theory/note.h"
 
 // #include "io/key_matrix.h"
 #include "io/strum_irq.h"
@@ -25,7 +26,7 @@ extern "C" {
 
 static ChordController* g_chord_controller = nullptr;
 
-#define LED_PIN 15
+#define LED_PIN 1
 
 // I2C Constants
 #define I2C_CHANNEL_ONE i2c1
