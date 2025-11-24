@@ -108,13 +108,6 @@ int main()
     std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
     std::vector<std::vector<bool>> released(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
 
-    uint8_t notes[CHORD_MATRIX_ROWS][CHORD_MATRIX_COLS] = {
-        {60, 62},
-        {64, 65},
-        {67, 69},
-        {71, 72},
-    };
-    
     MicPitchDetector pitch;
     pitch.init(); 
     const float min_sound = 23000.0f; //smallest note
@@ -123,6 +116,10 @@ int main()
     int demo_imu_state = false;
 
     while(true) {
+        loop_counter++;
+        // =========
+        // mic stuff
+        // =========
         auto pr = pitch.update();  //updates mic info
 
         if(PRINT_AUDIO) {
@@ -135,31 +132,33 @@ int main()
             }
         }
         
-        // matrix stuff
-        key_matrix_controller.poll_matrix(released, pressed);
-
-        bool any = false;
-        for (int r = 0; r < CHORD_MATRIX_ROWS; ++r) {
-            for (int c = 0; c < CHORD_MATRIX_COLS; ++c) {
-                if (pressed[r][c]) {
-                    if(PRINT_KEYS) {
-                        printf("Key pressed: row %d col %d\n", r, c);
+        // ======================
+        // chord key matrix stuff
+        // ======================
+        bool chords_changed = key_matrix_controller.poll_matrix_once();
+        if(chords_changed) {
+            auto new_key_state = key_matrix_controller.get_key_state();
+            if(PRINT_KEYS) {
+                // verified.
+                for(auto row : new_key_state) {
+                    for(bool col : row) {
+                        if(col) {
+                            printf("1");
+                        } else {
+                            printf("0");
+                        }
                     }
-                    // send_midi_note_on(notes[r][c], 100);
-                    g_chord_controller->update_chord(generate_chord(notes[r][c], MAJOR_INTERVALS, 4));
-                }
-                if (released[r][c]) {
-                    if(PRINT_KEYS) {
-                        printf("Key released: row %d col %d\n", r, c);
-                    }
-                    // send_midi_note_off(notes[r][c], 0);
+                    printf("\n");
                 }
             }
+            g_chord_controller->update_key_state(new_key_state);
         }
-        // OPTIMIZE: we just need to deep copy the contents of keys into last, not swap them.
-        // std::swap(keys, last);
+        
 
-        // update imu stuff every 100 ms
+        // =========
+        // imu stuff
+        // =========
+        // update every 10 cycles
         if(loop_counter == 10) {
             loop_counter = 0;
             // Read vector
@@ -184,7 +183,8 @@ int main()
                 imu_controller.debugPrint();
             }
         }
-        loop_counter++;
+        
+        // superloop baby!
         sleep_ms(10 /*6*/);
     }
 }

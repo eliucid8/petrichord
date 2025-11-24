@@ -8,7 +8,6 @@
 
 #include "theory/chords.h"
 #include "io/midi_messenger.h"
-#include "io/key_matrix.h"
 
 /**
  * calculates note on/off messages from given inputs.
@@ -49,12 +48,10 @@ public:
     void update_chord(std::vector<Note> chord);
     
     /**
-     * pass chord key matrix state info
-     * whatever keys might be a different array structure who gives a shit anymore
+     * updates chord key state,
+     * updates current chord.
      */
-    void update_key_state(const std::vector<std::vector<bool>>& keys) {
-        this->keys = keys;
-    }
+    void update_key_state(const std::vector<std::vector<bool>>& keys);
 
     /**
      * print the state of the notes table

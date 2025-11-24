@@ -41,7 +41,7 @@ bool KeyMatrixController::init(const uint8_t row_pins[], const uint8_t col_pins[
     return true;
 }
 
-bool KeyMatrixController::poll_matrix(std::vector<std::vector<bool>>& released, std::vector<std::vector<bool>>& pressed) {
+bool KeyMatrixController::get_matrix_edges(std::vector<std::vector<bool>>& released, std::vector<std::vector<bool>>& pressed) {
     bool state[NUM_ROWS][NUM_COLS] = {0};
     for(int r = 0; r < NUM_ROWS; ++r) {
         gpio_put(_row_pins[r], 0);
@@ -58,4 +58,29 @@ bool KeyMatrixController::poll_matrix(std::vector<std::vector<bool>>& released, 
         gpio_put(_row_pins[r], 1);
     }
     return true;
+}
+
+bool KeyMatrixController::poll_matrix_once() {
+    bool changed = false;
+    for(int r = 0; r < NUM_ROWS; ++r) {
+        gpio_put(_row_pins[r], 0);
+        
+        sleep_us(POLL_DELAY);
+        for(int c = 0; c < NUM_COLS; c++) {
+            bool temp = gpio_get(_col_pins[c]) == 0;
+            if (temp != _last[r][c]) {
+                changed = true;
+            }
+            _last[r][c] = temp;
+        }
+        gpio_put(_row_pins[r], 1);
+    }
+    return changed;
+}
+
+
+std::vector<std::vector<bool>> KeyMatrixController::get_key_state() {
+    std::vector<std::vector<bool>> ret;
+    std::copy(_last.begin(), _last.end(), back_inserter(ret));
+    return ret;
 }

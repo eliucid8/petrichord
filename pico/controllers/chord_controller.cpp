@@ -2,12 +2,6 @@
 
 // TODO: check to make sure we're not duplicating notes (because we are right now)
 void ChordController::handle_strum(std::vector<bool> strum_state) {
-    // // DEBUG
-    // for(bool state : strum_state) {
-    //     printf("%b", state);
-    // }
-    // printf("\n");
-
     // figure out what notes are now being held down
     std::vector<Note> held_down;
     for(int i = 0; i < strum_state.size(); ++i) {
@@ -15,11 +9,6 @@ void ChordController::handle_strum(std::vector<bool> strum_state) {
             held_down.push_back(chord[i]);
         }
     }
-    // DEBUG
-    // for(Note n : held_down) {
-    //     printf("%d ", n.pitch);
-    // }
-    // printf("\n");
     
     // send note ons/offs for everything that changed
     // N^2 algorithm. sue me.
@@ -63,10 +52,24 @@ std::string ChordController::print_notes() {
 }
 
 
+void ChordController::update_key_state(const std::vector<std::vector<bool>>& keys) {
+    this->keys = keys; 
+
+    auto chord_info = get_chord_intervals();
+
+    this->chord = generate_chord(
+        chord_info.first + 36, // the root + 3 octaves = 36   
+        chord_info.second, // the chord intervals
+        4
+    );
+}
+
+
 std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() {
     for(int i = 0; i < keys[0].size(); i++) {
         // read the keys pressed in this column as a number
         int chord_type = 0;
+        const int CHORD_ROWS = 3; // there are 3 rows on the board dedicated to chord keys (Major, minor, 7th)
         // reading from bottom up
         for(int j = CHORD_ROWS-1; j >= 0; j--) {
             // FIXME: add logging
