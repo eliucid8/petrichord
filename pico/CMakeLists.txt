@@ -45,6 +45,7 @@ add_executable(hello_matrix
     controllers/chord_controller.cpp
     io/mic_input.cpp
     controllers/imu_controller.cpp
+    controllers/key_matrix_controller.cpp
 )
 
 pico_set_program_name(hello_matrix "hello_matrix")
