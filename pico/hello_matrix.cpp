@@ -18,8 +18,6 @@ extern "C" {
 }
 
 
-#include "blink.pio.h"
-
 static ChordController* g_chord_controller = nullptr;
 
 #define LED_PIN 15
@@ -28,9 +26,6 @@ static ChordController* g_chord_controller = nullptr;
 int main()
 {
     stdio_init_all();
-
-    // mic_input mic(/*adc_num=*/2, /*vref_volts=*/3.3f);
-    // mic.init(); 
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -62,16 +57,18 @@ int main()
         if (g_chord_controller) {
             g_chord_controller->handle_strum(states);
         }
-    });
+    });\
 
     MicPitchDetector pitch;
     pitch.init(); 
-    const float min_sound = 23000.0f; //smallest note
+    const float min_sound = 000.0f; //smallest note
 
     while (true) {
+
         //mic:
-        
-        auto pr = pitch.update();  //updates mic info
+        auto pr = pitch.update();   //updates mic info
+        pitch.bins_for_plotter();   //prints amplitude frequencies 
+
         if(pr.amplitude >= min_sound){
             printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
             pr.freq_hz, pr.name, pr.amplitude);
@@ -79,8 +76,6 @@ int main()
         else{
             printf(" no pitch / too quiet\n");
         }
-
-        //printf("%.3f\n", mic.read_volts());  // prints mic output in serial port
 
         poll_matrix_once(row_pins, col_pins, keys);
 
