@@ -131,7 +131,7 @@ int main()
                 pr.freq_hz, pr.name, pr.amplitude);
             } 
             else{
-                printf(" no pitch / too quiet\n");
+                printf("no pitch / too quiet\n");
             }
         }
         

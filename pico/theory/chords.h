@@ -6,12 +6,14 @@
 #include "theory/note.h"
 
 // the number of half-steps between each note in a chord
-const std::vector<uint8_t> MAJOR_INTERVALS = {4, 3, 5};
-const std::vector<uint8_t> MINOR_INTERVALS = {3, 4, 5};
-const std::vector<uint8_t> DIMINISHED_INTERVALS = {3, 3, 3, 3};
-const std::vector<uint8_t> AUGMENTED_INTERVALS = {3, 5, 4};
-const std::vector<uint8_t> DOMINANT_INTERVALS = {4, 3, 3, 2};
-const std::vector<uint8_t> M7_INTERVALS = {4, 3, 4, 1};
+inline static const std::vector<uint8_t> MAJOR_INTERVALS = {4, 3, 5}; // G
+inline static const std::vector<uint8_t> MINOR_INTERVALS = {3, 4, 5}; // Gm
+inline static const std::vector<uint8_t> DIMINISHED_INTERVALS = {3, 3, 3, 3}; // Gdim
+inline static const std::vector<uint8_t> AUGMENTED_INTERVALS = {3, 5, 4}; // Gaug
+inline static const std::vector<uint8_t> DOMINANT_INTERVALS = {4, 3, 3, 2}; // G7
+inline static const std::vector<uint8_t> M7_INTERVALS = {4, 3, 4, 1}; // GM7
+inline static const std::vector<uint8_t> MINOR7_INTERVALS = {4, 3, 3, 2}; // Gm7
+inline static const std::vector<uint8_t> MINOR_MAJOR_INTERVALS = {4, 3, 4, 1}; // the james bond chord
 
 // TODO: typedef vector<Note> as a chord?
 inline std::vector<Note> generate_chord(

@@ -61,3 +61,25 @@ std::string ChordController::print_notes() {
     ret.append("\n");
     return ret;
 }
+
+
+std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() {
+    for(int i = 0; i < keys[0].size(); i++) {
+        // read the keys pressed in this column as a number
+        int chord_type = 0;
+        // reading from bottom up
+        for(int j = CHORD_ROWS-1; j >= 0; j--) {
+            // FIXME: add logging
+            chord_type <<= 1;
+            if(keys[j][i]) {
+                chord_type |= 1;
+            }
+        }
+        if(chord_type > 0) { // if keys are pressed down
+            int letter = LETTER_LAYOUT[i];
+            std::vector<uint8_t> chord_intervals = CHORD_INTERVALS[chord_type];
+            return {letter,chord_intervals};
+        }
+    }
+    return {};
+}
