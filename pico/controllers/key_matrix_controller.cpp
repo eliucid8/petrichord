@@ -78,6 +78,23 @@ bool KeyMatrixController::poll_matrix_once() {
     return changed;
 }
 
+bool KeyMatrixController::poll_matrix_rising() {
+    bool changed = false;
+    for(int r = 0; r < NUM_ROWS; ++r) {
+        gpio_put(_row_pins[r], 0);
+        
+        sleep_us(POLL_DELAY);
+        for(int c = 0; c < NUM_COLS; c++) {
+            bool temp = gpio_get(_col_pins[c]) == 0;
+            if (temp && !_last[r][c]) {
+                changed = true;
+            }
+            _last[r][c] = temp;
+        }
+        gpio_put(_row_pins[r], 1);
+    }
+    return changed;
+}
 
 std::vector<std::vector<bool>> KeyMatrixController::get_key_state() {
     std::vector<std::vector<bool>> ret;

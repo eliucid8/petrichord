@@ -16,6 +16,12 @@ class KeyMatrixController {
          * returns true if the state has changed.
          */
         bool poll_matrix_once();
+        
+        /**
+         * updates _last.
+         * returns true if the state has gone through a rising edge.
+         */
+        bool poll_matrix_rising();
 
         /**
          * returns mutable deep copy of key state

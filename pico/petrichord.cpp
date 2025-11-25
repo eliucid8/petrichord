@@ -135,7 +135,7 @@ int main()
         // ======================
         // chord key matrix stuff
         // ======================
-        bool chords_changed = key_matrix_controller.poll_matrix_once();
+        bool chords_changed = key_matrix_controller.poll_matrix_rising();
         if(chords_changed) {
             auto new_key_state = key_matrix_controller.get_key_state();
             g_chord_controller->update_key_state(new_key_state);

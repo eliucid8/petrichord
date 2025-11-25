@@ -51,24 +51,10 @@ std::string ChordController::print_notes() {
     return ret;
 }
 
-
 void ChordController::update_key_state(const std::vector<std::vector<bool>>& keys) {
     this->keys = keys;
-
-    // for (auto row : keys) {
-    //     for (bool col : row) {
-    //         if (col) {
-    //             printf("1");
-    //         } else {
-    //             printf("0");
-    //         }
-    //     }
-    //     printf("\n");
-    // }
-
     auto chord_info = get_chord_intervals();
 
-    // FIXME: wait until all keys are released before setting next chord.
     // prevents key releases from changing the chord.
     if(!chord_info.second.empty()) {
         chord = generate_chord(
@@ -76,14 +62,14 @@ void ChordController::update_key_state(const std::vector<std::vector<bool>>& key
             chord_info.second, // the chord intervals
             4
         );
-        for(auto note : chord) {
-            printf("%d ", note.pitch);
-        }
-        printf("\n");
+        // FIXME: add this to keypress logging
+        // printf("new chord set: ");
+        // for(auto note : chord) {
+        //     printf("%d ", note.pitch);
+        // }
+        // printf("\n");
     }
-
 }
-
 
 std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() {
     for(int i = 0; i < keys[0].size(); i++) {
@@ -100,9 +86,18 @@ std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() 
         }
         if(chord_type > 0) { // if keys are pressed down
             int letter = LETTER_LAYOUT[i];
-            // std::vector<uint8_t> chord_intervals = CHORD_INTERVALS[chord_type];
+            std::vector<uint8_t> chord_intervals = CHORD_INTERVALS[chord_type];
+            
+            // FLAT AND SHARP MODIFIERS
+            // OPTIMIZE is there somewhere cleaner to put these?
+            if(keys[3][0]) {
+                ++letter;
+            }
+            if(keys[3][1]) {
+                --letter;
+            }
             // printf("letter: %d, chord_type: %d\n", letter, chord_type);
-            return {letter,chord_intervals};
+            return {letter, chord_intervals};
         }
     }
     return {};
