@@ -53,15 +53,35 @@ std::string ChordController::print_notes() {
 
 
 void ChordController::update_key_state(const std::vector<std::vector<bool>>& keys) {
-    this->keys = keys; 
+    this->keys = keys;
+
+    // for (auto row : keys) {
+    //     for (bool col : row) {
+    //         if (col) {
+    //             printf("1");
+    //         } else {
+    //             printf("0");
+    //         }
+    //     }
+    //     printf("\n");
+    // }
 
     auto chord_info = get_chord_intervals();
 
-    this->chord = generate_chord(
-        chord_info.first + 36, // the root + 3 octaves = 36   
-        chord_info.second, // the chord intervals
-        4
-    );
+    // FIXME: wait until all keys are released before setting next chord.
+    // prevents key releases from changing the chord.
+    if(!chord_info.second.empty()) {
+        chord = generate_chord(
+            chord_info.first + 36, // the root + 3 octaves = 36   
+            chord_info.second, // the chord intervals
+            4
+        );
+        for(auto note : chord) {
+            printf("%d ", note.pitch);
+        }
+        printf("\n");
+    }
+
 }
 
 
@@ -80,7 +100,8 @@ std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() 
         }
         if(chord_type > 0) { // if keys are pressed down
             int letter = LETTER_LAYOUT[i];
-            std::vector<uint8_t> chord_intervals = CHORD_INTERVALS[chord_type];
+            // std::vector<uint8_t> chord_intervals = CHORD_INTERVALS[chord_type];
+            // printf("letter: %d, chord_type: %d\n", letter, chord_type);
             return {letter,chord_intervals};
         }
     }

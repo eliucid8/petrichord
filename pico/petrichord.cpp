@@ -138,19 +138,6 @@ int main()
         bool chords_changed = key_matrix_controller.poll_matrix_once();
         if(chords_changed) {
             auto new_key_state = key_matrix_controller.get_key_state();
-            if(PRINT_KEYS) {
-                // verified.
-                for(auto row : new_key_state) {
-                    for(bool col : row) {
-                        if(col) {
-                            printf("1");
-                        } else {
-                            printf("0");
-                        }
-                    }
-                    printf("\n");
-                }
-            }
             g_chord_controller->update_key_state(new_key_state);
         }
         
