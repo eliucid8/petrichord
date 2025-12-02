@@ -75,7 +75,7 @@ int main()
 
 
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
-    MidiMessenger midi_messenger(uart0);
+    MidiMessenger midi_messenger(uart0, PRINT_KEYS);
     ChordController chord_controller(&midi_messenger);
     KeyMatrixController key_matrix_controller(4, 2, 1, 30);
 
