@@ -24,8 +24,7 @@ public:
         MINOR7_INTERVALS, // xm7
         MINOR_MAJOR_INTERVALS, // Mm7
     };
-    
-    
+
     // F C G D A E B
     // the base midi numbers for each key. Add +12 for each extra octave you want--this is currently octave -1.
     inline static const std::array<uint8_t, 7> LETTER_LAYOUT = {
@@ -52,6 +51,12 @@ public:
      * updates current chord.
      */
     void update_key_state(const std::vector<std::vector<bool>>& keys);
+    
+    // OPTIMIZE: have this object call pitch.update by itself and read the outputted PitchResult object?
+    /**
+     * updates the chord based on voice pitch if the voice key is pressed.
+     */
+    void update_voice_pitch(const int voice_pitch);
 
     /**
      * print the state of the notes table

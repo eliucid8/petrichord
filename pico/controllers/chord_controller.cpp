@@ -84,7 +84,7 @@ std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() 
                 chord_type |= 1;
             }
         }
-        if(chord_type > 0) { // if keys are pressed down
+        if(chord_type > 0) { // if keys in the first 3 rows are pressed down
             int letter = LETTER_LAYOUT[i];
             std::vector<uint8_t> chord_intervals = CHORD_INTERVALS[chord_type];
             
@@ -101,4 +101,11 @@ std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() 
         }
     }
     return {};
+}
+
+void ChordController::update_voice_pitch(const int voice_pitch) {
+    // hardcoded location of pitch key.
+    if(keys[3][2]) {
+        chord = generate_chord(voice_pitch - 12, MAJOR_INTERVALS, 4);
+    }
 }

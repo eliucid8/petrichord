@@ -34,6 +34,7 @@ static ChordController* g_chord_controller = nullptr;
 #define IMU_SCL 27
 
 #define PRINT_AUDIO false
+#define PLOT_AUDIO false
 #define PRINT_IMU false
 #define PRINT_KEYS true
 
@@ -121,13 +122,18 @@ int main()
         // mic stuff
         // =========
         auto pr = pitch.update();  //updates mic info
+        if(PLOT_AUDIO) {
+            pitch.bins_for_plotter();   //prints amplitude frequencies 
+        }
 
-        if(PRINT_AUDIO) {
-            if(pr.amplitude >= min_sound){
+        if(pr.amplitude >= min_sound){
+            if(PRINT_AUDIO) {
                 printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
                 pr.freq_hz, pr.name, pr.amplitude);
             } 
-            else{
+            g_chord_controller->update_voice_pitch(pr.midi);
+        } else {
+            if(PRINT_AUDIO) {
                 printf("no pitch / too quiet\n");
             }
         }
