@@ -35,9 +35,12 @@ static ChordController* g_chord_controller = nullptr;
 #define IMU_SDA 26
 #define IMU_SCL 27
 
-#define PRINT_AUDIO true
+#define PRINT_AUDIO false
 #define PRINT_IMU false
 #define PRINT_KEYS true
+
+#define CHORD_MATRIX_ROWS 4
+#define CHORD_MATRIX_COLS 2
 
 void blink_task(void *pvParameters) {
     int ledState = 1;
@@ -82,10 +85,12 @@ int main()
 {
     init_io();
 
+
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
     MidiMessenger midi_messenger(uart0);
     ChordController chord_controller(&midi_messenger);
-    KeyMatrixController key_matrix_controller;
+    KeyMatrixController key_matrix_controller(4, 2, 1, 30);
+
 
 
     // IMU Controller Initialization
@@ -106,28 +111,18 @@ int main()
         }
     });
 
-
+    
     // matrix scan
-    const uint8_t row_pins[MATRIX_ROWS] = {2, 3, 4, 5};
-    const uint8_t col_pins[MATRIX_COLS] = {8, 9};
-    // configure_matrix_pins(row_pins, col_pins);
+    const uint8_t row_pins[4] = {2, 3, 4, 5};
+    const uint8_t col_pins[2] = {8, 9};
     key_matrix_controller.init(row_pins, col_pins);
-
-    bool pressed[MATRIX_ROWS][MATRIX_COLS] = {0};
-    bool released[MATRIX_ROWS][MATRIX_COLS] = {0};
-    // bool last[MATRIX_ROWS][MATRIX_COLS] = {0};
-    uint8_t notes[MATRIX_ROWS][MATRIX_COLS] = {
-        {60, 62},
-        {64, 65},
-        {67, 69},
-        {71, 72},
-    };
+    
+    std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
+    std::vector<std::vector<bool>> released(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
 
     MicPitchDetector pitch;
     pitch.init(); 
     const float min_sound = 23000.0f; //smallest note
-
-    
 
     int loop_counter = 0;
     int demo_imu_state = false;
@@ -137,6 +132,10 @@ int main()
     vTaskStartScheduler( );
 
     while(true) {
+        loop_counter++;
+        // =========
+        // mic stuff
+        // =========
         auto pr = pitch.update();  //updates mic info
 
         if(PRINT_AUDIO) {
@@ -145,35 +144,24 @@ int main()
                 pr.freq_hz, pr.name, pr.amplitude);
             } 
             else{
-                printf(" no pitch / too quiet\n");
+                printf("no pitch / too quiet\n");
             }
         }
         
-        // matrix stuff
-        key_matrix_controller.poll_matrix(released, pressed);
-
-        bool any = false;
-        for (int r = 0; r < MATRIX_ROWS; ++r) {
-            for (int c = 0; c < MATRIX_COLS; ++c) {
-                if (pressed[r][c]) {
-                    if(PRINT_KEYS) {
-                        printf("Key pressed: row %d col %d\n", r, c);
-                    }
-                    // send_midi_note_on(notes[r][c], 100);
-                    g_chord_controller->update_chord(generate_chord(notes[r][c], MAJOR_INTERVALS, 4));
-                }
-                if (released[r][c]) {
-                    if(PRINT_KEYS) {
-                        printf("Key released: row %d col %d\n", r, c);
-                    }
-                    // send_midi_note_off(notes[r][c], 0);
-                }
-            }
+        // ======================
+        // chord key matrix stuff
+        // ======================
+        bool chords_changed = key_matrix_controller.poll_matrix_rising();
+        if(chords_changed) {
+            auto new_key_state = key_matrix_controller.get_key_state();
+            g_chord_controller->update_key_state(new_key_state);
         }
-        // OPTIMIZE: we just need to deep copy the contents of keys into last, not swap them.
-        // std::swap(keys, last);
+        
 
-        // update imu stuff every 100 ms
+        // =========
+        // imu stuff
+        // =========
+        // update every 10 cycles
         if(loop_counter == 10) {
             loop_counter = 0;
             // Read vector
@@ -198,7 +186,8 @@ int main()
                 imu_controller.debugPrint();
             }
         }
-        loop_counter++;
+        
+        // superloop baby!
         sleep_ms(10 /*6*/);
     }
 }

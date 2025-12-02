@@ -1,4 +1,4 @@
-#include "strum_irq.h"
+#include "io/strum_irq.h"
 
 #include <stdio.h>
 #include <cstddef>
