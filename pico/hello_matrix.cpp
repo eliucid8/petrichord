@@ -61,15 +61,14 @@ int main()
 
     MicPitchDetector pitch;
     pitch.init(); 
-    const float min_sound = 000.0f; //smallest note
 
     while (true) {
 
         //mic:
         auto pr = pitch.update();   //updates mic info
-        pitch.bins_for_plotter();   //prints amplitude frequencies 
+        //pitch.bins_for_plotter();   //prints amplitude frequencies 
 
-        if(pr.amplitude >= min_sound){
+        if(pr.freq_hz != 0.0f){
             printf("Pitch frequency: ~%.1f Hz  bin=%s Midi=%d  amp=%.3f\n",
             pr.freq_hz, pr.name, pr.midi, pr.amplitude);
         } 
