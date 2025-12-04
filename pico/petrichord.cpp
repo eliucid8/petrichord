@@ -38,7 +38,7 @@ static ChordController* g_chord_controller = nullptr;
 #define PRINT_KEYS true
 
 #define CHORD_MATRIX_ROWS 4
-#define CHORD_MATRIX_COLS 2
+#define CHORD_MATRIX_COLS 7
 
 void init_io() {
     // init serial printing
@@ -77,8 +77,7 @@ int main()
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
     MidiMessenger midi_messenger(uart0, PRINT_KEYS);
     ChordController chord_controller(&midi_messenger);
-    KeyMatrixController key_matrix_controller(4, 2, 1, 30);
-
+    KeyMatrixController key_matrix_controller(CHORD_MATRIX_ROWS, CHORD_MATRIX_COLS, 1, 30);
 
 
     // IMU Controller Initialization
@@ -100,9 +99,8 @@ int main()
     });
 
     
-    // matrix scan
-    const uint8_t row_pins[4] = {2, 3, 4, 5};
-    const uint8_t col_pins[2] = {8, 9};
+    const uint8_t row_pins[4] = {10, 11, 12, 13, };
+    const uint8_t col_pins[7] = {2, 3, 4, 5, 6, 7, 8, };
     key_matrix_controller.init(row_pins, col_pins);
     
     std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));

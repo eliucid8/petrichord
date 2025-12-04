@@ -13,20 +13,20 @@ _row_pins(num_rows, 0), _col_pins(num_cols, 0), _last(num_rows, std::vector<bool
 
 bool KeyMatrixController::init(const uint8_t row_pins[], const uint8_t col_pins[]) {
     // copy pins to arrays
-    for(int r = 0; r < NUM_ROWS; ++r) {
-        _row_pins[r] = row_pins[r];
-        gpio_init(row_pins[r]);
-        gpio_set_dir(row_pins[r], GPIO_OUT);
-        gpio_put(row_pins[r], 1); // idle high (not selected)
+    for(int r = 0; r < NUM_COLS; ++r) {
+        _col_pins[r] = col_pins[r];
+        gpio_init(col_pins[r]);
+        gpio_set_dir(col_pins[r], GPIO_OUT);
+        gpio_put(col_pins[r], 1); // idle high (not selected)
         sleep_ms(50);
     }
 
-    for(int c = 0; c < NUM_COLS; ++c) {
-        _col_pins[c] = col_pins[c];
+    for(int c = 0; c < NUM_ROWS; ++c) {
+        _row_pins[c] = row_pins[c];
 
-        gpio_init(col_pins[c]);
-        gpio_set_dir(col_pins[c], GPIO_IN);
-        gpio_pull_up(col_pins[c]); // pressed -> reads low when row is driven low
+        gpio_init(row_pins[c]);
+        gpio_set_dir(row_pins[c], GPIO_IN);
+        gpio_pull_up(row_pins[c]); // pressed -> reads low when row is driven low
         sleep_ms(50);
     }
 
@@ -41,57 +41,57 @@ bool KeyMatrixController::init(const uint8_t row_pins[], const uint8_t col_pins[
     return true;
 }
 
-bool KeyMatrixController::get_matrix_edges(std::vector<std::vector<bool>>& released, std::vector<std::vector<bool>>& pressed) {
-    bool state[NUM_ROWS][NUM_COLS] = {0};
-    for(int r = 0; r < NUM_ROWS; ++r) {
-        gpio_put(_row_pins[r], 0);
+// bool KeyMatrixController::get_matrix_edges(std::vector<std::vector<bool>>& released, std::vector<std::vector<bool>>& pressed) {
+//     bool state[NUM_ROWS][NUM_COLS] = {0};
+//     for(int r = 0; r < NUM_ROWS; ++r) {
+//         gpio_put(_row_pins[r], 0);
         
-        sleep_us(POLL_DELAY);
-        for(int c = 0; c < NUM_COLS; c++) {
-            state[r][c] = gpio_get(_col_pins[c]) == 0;
+//         sleep_us(POLL_DELAY);
+//         for(int c = 0; c < NUM_COLS; c++) {
+//             state[r][c] = gpio_get(_col_pins[c]) == 0;
             
-            released[r][c] = (_last[r][c] && !state[r][c]);
-            pressed[r][c] = (!_last[r][c] && state[r][c]);
+//             released[r][c] = (_last[r][c] && !state[r][c]);
+//             pressed[r][c] = (!_last[r][c] && state[r][c]);
             
-            _last[r][c] = state[r][c];
-        }
-        gpio_put(_row_pins[r], 1);
-    }
-    return true;
-}
+//             _last[r][c] = state[r][c];
+//         }
+//         gpio_put(_row_pins[r], 1);
+//     }
+//     return true;
+// }
 
-bool KeyMatrixController::poll_matrix_once() {
-    bool changed = false;
-    for(int r = 0; r < NUM_ROWS; ++r) {
-        gpio_put(_row_pins[r], 0);
+// bool KeyMatrixController::poll_matrix_once() {
+//     bool changed = false;
+//     for(int r = 0; r < NUM_ROWS; ++r) {
+//         gpio_put(_row_pins[r], 0);
         
-        sleep_us(POLL_DELAY);
-        for(int c = 0; c < NUM_COLS; c++) {
-            bool temp = gpio_get(_col_pins[c]) == 0;
-            if (temp != _last[r][c]) {
-                changed = true;
-            }
-            _last[r][c] = temp;
-        }
-        gpio_put(_row_pins[r], 1);
-    }
-    return changed;
-}
+//         sleep_us(POLL_DELAY);
+//         for(int c = 0; c < NUM_COLS; c++) {
+//             bool temp = gpio_get(_col_pins[c]) == 0;
+//             if (temp != _last[r][c]) {
+//                 changed = true;
+//             }
+//             _last[r][c] = temp;
+//         }
+//         gpio_put(_row_pins[r], 1);
+//     }
+//     return changed;
+// }
 
 bool KeyMatrixController::poll_matrix_rising() {
     bool changed = false;
-    for(int r = 0; r < NUM_ROWS; ++r) {
-        gpio_put(_row_pins[r], 0);
+    for(int c = 0; c < NUM_COLS; ++c) {
+        gpio_put(_col_pins[c], 0);
         
         sleep_us(POLL_DELAY);
-        for(int c = 0; c < NUM_COLS; c++) {
-            bool temp = gpio_get(_col_pins[c]) == 0;
+        for(int r = 0; r < NUM_ROWS; r++) {
+            bool temp = gpio_get(_row_pins[r]) == 0;
             if (temp && !_last[r][c]) {
                 changed = true;
             }
             _last[r][c] = temp;
         }
-        gpio_put(_row_pins[r], 1);
+        gpio_put(_col_pins[c], 1);
     }
     return changed;
 }
