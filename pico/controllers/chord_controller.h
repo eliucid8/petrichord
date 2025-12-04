@@ -37,10 +37,10 @@ public:
     }
 
     /**
-     * called on strum interrupt. updates state of current notes down
+     * called on strum interrupt. updates state of note down
      * and sends to midi_messenger
      */
-    void handle_strum(std::vector<bool> state);   
+    void handle_strum(uint8_t plate_number);   
 
     /**
      * DEPRECATED called on chord change.
@@ -66,6 +66,7 @@ private:
     std::pair<uint8_t, std::vector<uint8_t>> get_chord_intervals();
 
     std::vector<Note> notes;
+    Note playing_note = Note(0, 0);
     std::vector<Note> chord;
     std::vector<std::vector<bool>> keys; // OPTIMIZE size should be defined in key_matrix?
     MidiMessenger* midi; //NOTE: make uniq_ptr?
