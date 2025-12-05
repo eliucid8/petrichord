@@ -32,6 +32,8 @@ bool IMU_Controller::init(i2c_inst_t *i2c_port) {
 
     printf("IMU_Controller: initialized succesfully.\n");
 
+    initialized_ = true;
+
     return true;
 }
 

@@ -29,9 +29,9 @@ extern "C" {
 #define LED_PIN 1
 
 // I2C Constants
-#define I2C_CHANNEL_ONE i2c0
-#define IMU_SDA 16
-#define IMU_SCL 17
+#define I2C_CHANNEL_ONE i2c1
+#define IMU_SDA 18
+#define IMU_SCL 19
 
 #define PRINT_AUDIO false
 #define PRINT_IMU false

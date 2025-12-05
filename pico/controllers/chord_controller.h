@@ -40,7 +40,7 @@ public:
      * called on strum interrupt. updates state of note down
      * and sends to midi_messenger
      */
-    void update_note(uint8_t plate_number);   
+    void update_note(uint8_t plate_number, uint8_t velocity);
 
     /**
      * DEPRECATED called on chord change.
