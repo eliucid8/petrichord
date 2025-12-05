@@ -30,6 +30,8 @@ class IMU_Controller {
         bool readEulerCoordinates(struct imu_hrp_data *dst);
 
         void debugPrint();
+
+        bool initialized();
     
     private:
         // i2c_inst_t *i2c_;

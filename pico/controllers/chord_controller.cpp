@@ -1,8 +1,13 @@
 #include "chord_controller.h"
 
-void ChordController::update_note(uint8_t plate_number) {
+void ChordController::update_note(uint8_t plate_number, uint8_t velocity) {
     note_number = plate_number;
-    playing_note.velocity = 127; // TODO: make velocity adjustable via IMU later
+    playing_note.velocity = velocity; // TODO: make velocity adjustable via IMU later
+
+    if(playing_note.pitch != 0) {
+        // turn off previous note
+        midi->send_midi_note_off(playing_note);
+    }
 
     if(plate_number < chord.size()) {
         // valid note
