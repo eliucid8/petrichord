@@ -15,11 +15,12 @@ void binprintf(uint8_t v)
 
 uint8_t style_plate_state = 0;
 void handle_strum_plate_irq(uint gpio, uint32_t events) {
+    // printf("Strum plate IRQ on pin %d, event %d\n", gpio, events == GPIO_IRQ_EDGE_RISE ? 1 : 0);
 
     uint8_t pin_bit = 0;
     switch(gpio) {
-        case 19: pin_bit = 1 << 0; break;
-        case 20: pin_bit = 1 << 1; break;
+        case 20: pin_bit = 1 << 0; break;
+        case 21: pin_bit = 1 << 1; break;
         default: 
             printf("WARNING: Unrecognized interrupt pin detected\n");
             return; // unrecognized pin
@@ -39,6 +40,8 @@ void handle_strum_plate_irq(uint gpio, uint32_t events) {
         // valid style plate state detected
         uint8_t style_index = key_selected->second;
         g_chord_controller->update_note(style_index);
+    } else {
+        g_chord_controller->update_note(255);
     }
 }
 
@@ -112,13 +115,6 @@ int main()
 
     g_chord_controller = &chord_controller;
 
-    // std::unique_ptr<strum_irq::StrumIrq> fake_strum = strum_irq::CreateFakeStrumIrq(nullptr);
-    // fake_strum->set_callback([](std::vector<bool> states) {
-    //     if (g_chord_controller) {
-    //         g_chord_controller->handle_strum(states);
-    //     }
-    // });
-
     key_matrix_controller.init(ROW_PINS, COL_PINS);
     
     std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
@@ -129,8 +125,6 @@ int main()
     const float min_sound = 23000.0f; //smallest note
 
     int loop_counter = 0;
-    int demo_imu_state = false;
-
     uint8_t imu_velocity = 127;
 
     while(true) {
@@ -164,7 +158,7 @@ int main()
         // imu stuff
         // =========
         // update every 10 cycles
-        if(loop_counter == 10) {
+        if(imu_controller.initialized() && loop_counter == 10) {
             loop_counter = 0;
             // Read vector
             struct imu_xyz_data g;

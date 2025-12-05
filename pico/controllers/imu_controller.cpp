@@ -109,3 +109,7 @@ void IMU_Controller::debugPrint() {
     }
     
 }
+
+bool IMU_Controller::initialized() {
+    return initialized_;
+}

@@ -44,7 +44,7 @@ const uint8_t ROW_PINS[4] = {10, 11, 12, 13, };
 const uint8_t COL_PINS[7] = {2, 3, 4, 5, 6, 7, 8, };
 
 #define STRUM_PLATE_COUNT 2
-const uint8_t STRUM_PLATE_PINS[STRUM_PLATE_COUNT] = {19, 20,};
+const uint8_t STRUM_PLATE_PINS[STRUM_PLATE_COUNT] = {20, 21,};
 
 // MUST MATCH PHYSICAL CHARLIEPLEXING STYLE PLATE WIRING
 const std::map<uint8_t, uint8_t> STYLE_PLATE_MAP = {
