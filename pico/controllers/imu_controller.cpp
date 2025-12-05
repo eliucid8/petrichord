@@ -41,7 +41,7 @@ bool IMU_Controller::readGravityVector(struct imu_xyz_data *dst) {
     s8 err = bno055_convert_float_gravity_xyz_msq(&gravData);
 
     if(err) {
-        printf("IMU_Controller: bno055 gravity read failiure\n");
+        // printf("IMU_Controller: bno055 gravity read failiure\n");
         return false;
     }
 
@@ -57,7 +57,7 @@ bool IMU_Controller::readLinearAccelerationVector(struct imu_xyz_data *dst) {
     s8 err = bno055_convert_float_accel_xyz_msq(&vec);
 
     if(err) {
-        printf("IMUController: bno055 linear acceleration read failiure\n");
+        // printf("IMUController: bno055 linear acceleration read failiure\n");
         return false;
     }
 
@@ -73,7 +73,7 @@ bool IMU_Controller::readEulerCoordinates(struct imu_hrp_data *dst) {
     s8 err = bno055_convert_float_euler_hpr_deg(&vec);
 
     if(err) {
-        printf("IMU Controller: bno055 euler coordinate read failiure\n");
+        // printf("IMU Controller: bno055 euler coordinate read failiure\n");
         return false;
     }
 

@@ -1,7 +1,6 @@
 #include "chord_controller.h"
 
-// TODO: check to make sure we're not duplicating notes (because we are right now)
-void ChordController::handle_strum(uint8_t plate_number) {
+void ChordController::update_note(uint8_t plate_number) {
     // figure out what notes are now being held down
     // std::vector<Note> held_down;
     // for(int i = 0; i < strum_state.size(); ++i) {
@@ -29,23 +28,14 @@ void ChordController::handle_strum(uint8_t plate_number) {
     //     }
     // }
 
-    if(playing_note.pitch != 0) {
-        midi->send_midi_note_off(playing_note);
-    }
+    note_number = plate_number;
 
-    if(plate_number < notes.size()) {
+    if(plate_number < chord.size()) {
         // valid note
-        Note note = notes[plate_number];
-        midi->send_midi_note_on(note);
-        playing_note = note;
+        playing_note.pitch = chord[plate_number].pitch;
     } else {
-        playing_note = Note(0, 0);  // Null note
+        playing_note.pitch = 0;
     }
-    // for(Note new_note : held_down) {
-    //     midi->send_midi_note_on(new_note);
-    //     notes.push_back(new_note);
-    // }
-    // printf(print_notes().c_str());
 }
 
 // TODO: figure out what happens when you're still holding a strum down but you change the chord
@@ -53,12 +43,11 @@ void ChordController::update_chord(std::vector<Note> chord) {
     this->chord = chord;
 }
 
-std::string ChordController::print_notes() {
+std::string ChordController::print_note() {
     std::string ret;
-    for(Note n : notes) {
-        ret.append(std::to_string(n.pitch));
-        ret.append(" ");
-    }
+    ret.append(std::to_string(playing_note.pitch));
+    ret.append(", ");
+    ret.append(std::to_string(playing_note.velocity));
     ret.append("\n");
     return ret;
 }
