@@ -16,10 +16,12 @@ constexpr float kVelocityScale = 1.0f / 127.0f;
 uint8_t numVoicesActive = 0;
 
 // OPTIMIZE ugly global variables
-float attack = 0.01f;
-float decay = 0.1f;
-float sustain = 0.7f;
-float release = 0.3f;
+float g_attack = 0.01f;
+float g_decay = 0.1f;
+float g_sustain = 0.7f;
+float g_release = 0.3f;
+
+bool debugLED = false;;
 
 //---------------------------------------------------------------------
 // Voice definition
@@ -58,10 +60,10 @@ struct Voice
         gate     = true;
         note     = note_in;
         active   = true;
-        env.SetTime(ADSR_SEG_ATTACK, attack);
-        env.SetTime(ADSR_SEG_DECAY, decay);
-        env.SetSustainLevel(sustain);
-        env.SetTime(ADSR_SEG_RELEASE, release);
+        env.SetTime(ADSR_SEG_ATTACK, g_attack);
+        env.SetTime(ADSR_SEG_DECAY, g_decay);
+        env.SetSustainLevel(g_sustain);
+        env.SetTime(ADSR_SEG_RELEASE, g_release);
     }
 
     void NoteOff()
@@ -201,6 +203,25 @@ RhythmTrack tracks[kNumTracks] = {
     {700, 250, 72, 0.9f, 0, false, nullptr}, // 1.4Hz
 };
 
+void bendAll(Voice voices[]) {
+    for(int i = 0; i < kNumVoices; i++) {
+        if(voices[i].gate) {
+            float bend = (g_decay - 0.5f) * 16.0f;
+            float note = voices[i].note + bend;
+            float freq = mtof(note);
+            hw.PrintLine(FLT_FMT3, FLT_VAR3(note));
+            voices[i].osc.SetFreq(freq);
+        }
+    }
+}
+
+void blink(void) {
+    debugLED = !debugLED;
+    hw.SetLed(debugLED);
+}
+
+
+
 //---------------------------------------------------------------------
 // Main
 //---------------------------------------------------------------------
@@ -211,7 +232,7 @@ int main(void)
     hw.StartLog();
 
     // Create an array of AdcChannelConfig objects
-    const int NUM_ADC_CHANNELS = 3;
+    const int NUM_ADC_CHANNELS = 4;
     AdcChannelConfig my_adc_config[NUM_ADC_CHANNELS];
     // Initialize.
     // OPTIMIZE put this into functions or something
@@ -242,8 +263,9 @@ int main(void)
     hw.StartAudio(AudioCallback);
     hw.SetLed(false);
     hw.PrintLine("UART MIDI PolySynth Ready! 32 voices active.");
-    // v1->NoteOff();
-
+    // voices[0].NoteOn(60, 127);
+    // voices[1].NoteOn(64, 127);
+    // voices[2].NoteOn(67, 127);
 
     while(1)
     {
@@ -251,12 +273,15 @@ int main(void)
 
         while(midi_uart.HasEvents()) {
             HandleMidiMessage(midi_uart.PopEvent());
+            blink();
         }
 
-        attack = 2 * hw.adc.GetFloat(0);
-        decay = hw.adc.GetFloat(1);
-        sustain = hw.adc.GetFloat(2);
-        release = 3 * hw.adc.GetFloat(3);
+        g_attack = 2 * hw.adc.GetFloat(0);
+        g_decay = hw.adc.GetFloat(1);
+        g_sustain = hw.adc.GetFloat(2);
+        g_release = 3 * hw.adc.GetFloat(3);
+        
+        // bendAll(voices);
 
         System::Delay(1);
     }

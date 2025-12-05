@@ -1,45 +1,61 @@
-#include <memory>
-#include <stdio.h>
-#include <cstdint>
-#include <algorithm>
+#include "pinout_config.h"
 
-#include "pico/stdlib.h"
-#include "hardware/pio.h"
-#include "hardware/timer.h"
-#include "hardware/uart.h"
-#include "hardware/i2c.h"
-#include "theory/note.h"
-
-// #include "io/key_matrix.h"
-#include "io/strum_irq.h"
-#include "controllers/chord_controller.h"
-#include "io/midi_messenger.h"
-#include "io/mic_input.h"
-extern "C" {
-#include "pico/fft.h"
-}
-
-#include "controllers/imu_controller.h"
-#include "controllers/key_matrix_controller.h"
-
-// #include "blink.pio.h"
-
-static ChordController* g_chord_controller = nullptr;
-
-#define LED_PIN 1
-
-// I2C Constants
-#define I2C_CHANNEL_ONE i2c1
-#define IMU_SDA 26
-#define IMU_SCL 27
-
+#define PRINT_KEYS false
 #define PRINT_AUDIO false
 #define PLOT_AUDIO false
 #define PRINT_IMU false
-#define PRINT_KEYS true
 
-#define CHORD_MATRIX_ROWS 4
-#define CHORD_MATRIX_COLS 2
+static ChordController* g_chord_controller = nullptr;
+
+void binprintf(uint8_t v)
+{
+    unsigned int mask=1<<((sizeof(uint8_t)<<3)-1);
+    while(mask) {
+        printf("%d", (v&mask ? 1 : 0));
+        mask >>= 1;
+    }
+}
+
+uint8_t style_plate_state = 0;
+uint8_t imu_velocity = 127;
+void handle_strum_plate_irq(uint gpio, uint32_t events) {
+    // printf("Strum plate IRQ on pin %d, event %d\n", gpio, events == GPIO_IRQ_EDGE_RISE ? 1 : 0);
+
+    // uint8_t pin_bit = 0;
+    // switch(gpio) {
+    //     case 20: pin_bit = 1 << 0; break;
+    //     case 21: pin_bit = 1 << 1; break;
+    //     default: 
+    //         printf("WARNING: Unrecognized interrupt pin detected\n");
+    //         return; // unrecognized pin
+    // }
+
+    // if(events & GPIO_IRQ_EDGE_RISE) {
+    //     style_plate_state |= pin_bit;
+    // } else if(events & GPIO_IRQ_EDGE_FALL) {
+    //     style_plate_state &= ~pin_bit;
+    // } else {
+    //     printf("WARNING: Unrecognized interrupt event detected\n");
+    //     return; // unrecognized event
+    // }
+
+    for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
+        if(gpio_get(STRUM_PLATE_PINS[i])) {
+            style_plate_state |= (1 << i);
+        } else {
+            style_plate_state &= ~(1 << i);
+        }
+    }
+
+    auto key_selected = STYLE_PLATE_MAP.find(style_plate_state);
+    if(key_selected != STYLE_PLATE_MAP.end()) {
+        // valid style plate state detected
+        uint8_t style_index = key_selected->second;
+        g_chord_controller->update_note(style_index, imu_velocity);
+    } else {
+        g_chord_controller->update_note(255, 0);
+    }
+}
 
 void init_io() {
     // init serial printing
@@ -66,6 +82,26 @@ void init_io() {
     gpio_set_function(IMU_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(IMU_SDA);
     gpio_pull_up(IMU_SCL);
+
+    
+    gpio_init(STRUM_PLATE_PINS[0]);
+        gpio_set_dir(STRUM_PLATE_PINS[0], GPIO_IN);
+        gpio_set_irq_enabled_with_callback(
+            STRUM_PLATE_PINS[0],
+            GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+            true,
+            &handle_strum_plate_irq
+    );
+
+    for(int i = 1; i < STRUM_PLATE_COUNT; i++) {
+        gpio_init(STRUM_PLATE_PINS[i]);
+        gpio_set_dir(STRUM_PLATE_PINS[i], GPIO_IN);
+        gpio_set_irq_enabled(
+            STRUM_PLATE_PINS[i],
+            GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+            true
+        );   
+    }
     
 }
 
@@ -76,10 +112,9 @@ int main()
 
 
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
-    MidiMessenger midi_messenger(uart0);
+    MidiMessenger midi_messenger(uart0, PRINT_KEYS);
     ChordController chord_controller(&midi_messenger);
-    KeyMatrixController key_matrix_controller(4, 2, 1, 30);
-
+    KeyMatrixController key_matrix_controller(CHORD_MATRIX_ROWS, CHORD_MATRIX_COLS, 1, 30);
 
 
     // IMU Controller Initialization
@@ -90,21 +125,9 @@ int main()
         printf("ERROR: imu failed to initialize on i2c1");
     }
 
-
     g_chord_controller = &chord_controller;
 
-    std::unique_ptr<strum_irq::StrumIrq> fake_strum = strum_irq::CreateFakeStrumIrq(nullptr);
-    fake_strum->set_callback([](std::vector<bool> states) {
-        if (g_chord_controller) {
-            g_chord_controller->handle_strum(states);
-        }
-    });
-
-    
-    // matrix scan
-    const uint8_t row_pins[4] = {2, 3, 4, 5};
-    const uint8_t col_pins[2] = {8, 9};
-    key_matrix_controller.init(row_pins, col_pins);
+    key_matrix_controller.init(ROW_PINS, COL_PINS);
     
     std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
     std::vector<std::vector<bool>> released(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
@@ -114,7 +137,6 @@ int main()
     const float min_sound = 23000.0f; //smallest note
 
     int loop_counter = 0;
-    int demo_imu_state = false;
 
     while(true) {
         loop_counter++;
@@ -152,28 +174,24 @@ int main()
         // imu stuff
         // =========
         // update every 10 cycles
-        if(loop_counter == 10) {
+        if(imu_controller.initialized() && loop_counter == 10) {
             loop_counter = 0;
             // Read vector
             struct imu_xyz_data g;
             imu_controller.readGravityVector(&g);
 
-            // Observationally, corresponds to imu being rotated 90 degrees on one axis
-            if(g.z < 2 && g.z > -2) {
-                gpio_put(LED_PIN, 1);
-                if (!demo_imu_state) {
-                    midi_messenger.send_midi_note_on(Note(36, 120));
-                    demo_imu_state = true;
-                }
+            float velocity_float = (std::abs(g.z) / 9.81f) * 127.0f;
+            // convert to uint8_t safely
+            if (velocity_float > 127.0f) {
+                imu_velocity = 127;
+            } else if (velocity_float < 0.0f) {
+                imu_velocity = 0;
             } else {
-                gpio_put(LED_PIN, 0);
-                if (demo_imu_state) {
-                    midi_messenger.send_midi_note_off(Note(36, 0));
-                    demo_imu_state = false;
-                }
+                imu_velocity = static_cast<uint8_t>(velocity_float);
             }
+
             if(PRINT_IMU) {
-                imu_controller.debugPrint();
+                printf("IMU Velocity: %d\n", imu_velocity);
             }
         }
         

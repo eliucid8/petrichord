@@ -30,6 +30,9 @@ include(pico_sdk_import.cmake)
 include(pico_extras_import.cmake)
 include(pico_fft_import.cmake)
 
+# FreeRTOS setup
+# include(FreeRTOS-Kernel/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake)
+
 project(petrichord C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
@@ -81,6 +84,7 @@ target_link_libraries(petrichord
         hardware_adc
         pico_fft
         hardware_i2c
+        hardware_irq
         )
 
 pico_add_extra_outputs(petrichord)
@@ -93,4 +97,9 @@ CXX_STANDARD_REQUIRED YES
 add_subdirectory(controllers/BNO055_driver)
 target_link_libraries(petrichord
     pico_bno055
+)
+
+target_link_libraries(petrichord
+#   FreeRTOS-Kernel 
+#   FreeRTOS-Kernel-Heap4 
 )

@@ -10,3 +10,7 @@
 [submodule "pico/pico_fft"]
 	path = pico/pico_fft
 	url = git@github.com:raquiqui/pico_fft.git
+[submodule "pico/FreeRTOS-Kernel"]
+	path = pico/FreeRTOS-Kernel
+	url = https://github.com/samledden04/FreeRTOS-Kernel
+	branch = main
