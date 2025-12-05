@@ -4,20 +4,6 @@
 
 static ChordController* g_chord_controller = nullptr;
 
-#define LED_PIN 1
-
-void blink_task(void *pvParameters) {
-    int ledState = 1;
-
-    while(1) {
-        // printf("Blink!\n");
-        ledState = ledState ^ 1;
-        gpio_put(LED_PIN, ledState);
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
-
-
 void binprintf(uint8_t v)
 {
     unsigned int mask=1<<((sizeof(uint8_t)<<3)-1);
@@ -29,9 +15,6 @@ void binprintf(uint8_t v)
 
 uint8_t style_plate_state = 0;
 void handle_strum_plate_irq(uint gpio, uint32_t events) {
-    printf("Strum plate IRQ on pin %d: old_state: ", gpio);
-    binprintf(style_plate_state);
-    printf(",  new_state: ");
 
     uint8_t pin_bit = 0;
     switch(gpio) {
@@ -51,14 +34,11 @@ void handle_strum_plate_irq(uint gpio, uint32_t events) {
         return; // unrecognized event
     }
 
-    binprintf(style_plate_state);
-    printf("\n");
-
     auto key_selected = STYLE_PLATE_MAP.find(style_plate_state);
     if(key_selected != STYLE_PLATE_MAP.end()) {
         // valid style plate state detected
         uint8_t style_index = key_selected->second;
-        g_chord_controller->handle_strum(style_index, 127 /* imu_velocity */);
+        g_chord_controller->update_note(style_index);
     }
 }
 

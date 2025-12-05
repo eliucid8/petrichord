@@ -1,38 +1,13 @@
 #include "chord_controller.h"
 
 void ChordController::update_note(uint8_t plate_number) {
-    // figure out what notes are now being held down
-    // std::vector<Note> held_down;
-    // for(int i = 0; i < strum_state.size(); ++i) {
-    //     if(strum_state[i] && i < chord.size()) {
-    //         held_down.push_back(chord[i]);
-    //     }
-    // }
-    
-    // send note ons/offs for everything that changed
-    // N^2 algorithm. sue me.
-    // OPTIMIZE: I know the optimal algorithm uses hashmaps gah
-    // for(int i = 0; i < notes.size(); ++i) {
-    //     Note note = notes[i];
-    //     auto it = std::find(held_down.begin(), held_down.end(), note);
-    //     if(it == held_down.end()) {
-    //         // no match found, remove this from the vector.
-    //         std::swap(note, notes.back());
-    //         midi->send_midi_note_off(note);
-    //         notes.pop_back();
-    //     } else {
-    //         // match found, remove this from held_down.
-    //         notes[i].pitch = it->pitch; // FIX: is the note struct mutable?
-    //         std::swap(*it, held_down.back());
-    //         held_down.pop_back();
-    //     }
-    // }
-
     note_number = plate_number;
+    playing_note.velocity = 127; // TODO: make velocity adjustable via IMU later
 
     if(plate_number < chord.size()) {
         // valid note
         playing_note.pitch = chord[plate_number].pitch;
+        midi->send_midi_note_on(playing_note);
     } else {
         playing_note.pitch = 0;
     }
