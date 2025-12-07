@@ -1,5 +1,7 @@
 #include "daisy_seed.h"
 #include "daisysp.h"
+#include <cstdint>
+#include <algorithm>
 
 using namespace daisy;
 using namespace daisy::seed;
@@ -10,9 +12,10 @@ using namespace daisysp;
 //---------------------------------------------------------------------
 DaisySeed hw;
 
-constexpr int kNumVoices = 32;
+constexpr int kNumVoices = 22;
 constexpr float kVelocityScale = 1.0f / 127.0f;
 
+MidiUartHandler midi_uart;
 uint8_t numVoicesActive = 0;
 
 // OPTIMIZE ugly global variables
@@ -22,6 +25,10 @@ float g_sustain = 0.7f;
 float g_release = 0.3f;
 
 bool debugLED = false;;
+
+// Effects
+Overdrive overdrive;
+Autowah autowah;
 
 //---------------------------------------------------------------------
 // Voice definition
@@ -38,7 +45,7 @@ struct Voice
     void Init(float samplerate)
     {
         osc.Init(samplerate);
-        osc.SetWaveform(Oscillator::WAVE_SAW);
+        osc.SetWaveform(Oscillator::WAVE_POLYBLEP_TRI);
 
         env.Init(samplerate);
         env.SetTime(ADSR_SEG_ATTACK, 0.01f);
@@ -112,7 +119,36 @@ Voice* FindVoiceByNote(uint8_t note)
     return nullptr;
 }
 
-MidiUartHandler midi_uart;
+
+void HandleNoteOn(daisy::NoteOnEvent msg) {
+    if(msg.velocity > 0)
+    {
+        // first check to see if the note is already being played. deduplicates note ons
+        Voice* v = FindVoiceByNote(msg.note);
+        if(v == nullptr) {
+            v = FindFreeVoice();
+        }
+        v->NoteOn(msg.note, msg.velocity);
+        hw.PrintLine("ON\t%d\t%d", msg.note, msg.velocity);
+    }
+    else
+    {
+        Voice* v = FindVoiceByNote(msg.note);
+        if(v) {
+            v->NoteOff();
+            hw.PrintLine("OFF\t%d", msg.note);
+        }
+    }
+}
+
+void HandleNoteOff(NoteOffEvent msg) {
+    // hw.SetLed(true);
+    Voice* v = FindVoiceByNote(msg.note);
+    if(v) {
+        v->NoteOff();
+        hw.PrintLine("OFF\t%d", msg.note);
+    }
+}
 
 void HandleMidiMessage(MidiEvent m)
 {
@@ -120,37 +156,13 @@ void HandleMidiMessage(MidiEvent m)
     {
         case NoteOn:
         {
-            auto msg = m.AsNoteOn();
-            if(msg.velocity > 0)
-            {
-                // first check to see if the note is already being played. deduplicates note ons
-                Voice* v = FindVoiceByNote(msg.note);
-                if(v == nullptr) {
-                    v = FindFreeVoice();
-                }
-                v->NoteOn(msg.note, msg.velocity);
-                hw.PrintLine("ON\t%d\t%d", msg.note, msg.velocity);
-            }
-            else
-            {
-                Voice* v = FindVoiceByNote(msg.note);
-                if(v) {
-                    v->NoteOff();
-                    hw.PrintLine("OFF\t%d", msg.note);
-                }
-            }
+            HandleNoteOn(m.AsNoteOn());
             break;
         }
 
         case NoteOff:
         {
-            auto msg = m.AsNoteOff();
-            // hw.SetLed(true);
-            Voice* v = FindVoiceByNote(msg.note);
-            if(v) {
-                v->NoteOff();
-                hw.PrintLine("OFF\t%d", msg.note);
-            }
+            HandleNoteOff(m.AsNoteOff());
             break;
         }
 
@@ -175,33 +187,22 @@ void AudioCallback(AudioHandle::InputBuffer in,
                 active_voices++;
             }
         }
+        
+        // global effects
+        // mix = autowah.Process(mix);
 
+        mix = overdrive.Process(mix);
+        
         mix *= 1.0f / sqrtf(static_cast<float>(active_voices));
+        // assuming we have a max of 16 voices running at max volume, we will end up with 4x the original range of the oscillator.
+        // thus we divide by 4 to get something within output range.
+        // mix *= 0.25f;
+        // hw.PrintLine(FLT_FMT3, FLT_VAR3(mix));
 
-        mix *= 2.0f;
         out[0][i] = mix;
         out[1][i] = mix;
     }
 }
-
-struct RhythmTrack
-{
-    uint32_t period_ms;     // interval between note-ons
-    uint32_t duration_ms;   // note length
-    uint8_t  note;
-    float    velocity;
-    uint32_t last_on;
-    bool     playing;
-    Voice*   v;
-};
-
-constexpr int kNumTracks = 4;
-RhythmTrack tracks[kNumTracks] = {
-    {200, 100, 60, 0.9f, 0, false, nullptr}, // 5Hz
-    {300, 100, 64, 0.9f, 0, false, nullptr}, // 3.3Hz
-    {500, 200, 67, 0.9f, 0, false, nullptr}, // 2Hz
-    {700, 250, 72, 0.9f, 0, false, nullptr}, // 1.4Hz
-};
 
 void bendAll(Voice voices[]) {
     for(int i = 0; i < kNumVoices; i++) {
@@ -220,17 +221,11 @@ void blink(void) {
     hw.SetLed(debugLED);
 }
 
-
-
-//---------------------------------------------------------------------
-// Main
-//---------------------------------------------------------------------
-int main(void)
-{
-    // ----Hardware init----
-    hw.Init();
-    hw.StartLog();
-
+/**
+ * init global sound effects
+ * float fs: sample rate
+ */
+void init_effects(float fs) {
     // Create an array of AdcChannelConfig objects
     const int NUM_ADC_CHANNELS = 4;
     AdcChannelConfig my_adc_config[NUM_ADC_CHANNELS];
@@ -245,30 +240,79 @@ int main(void)
     // Start the ADC
     hw.adc.Start();
 
+    autowah.Init(fs);
+    autowah.SetDryWet(80.f);
+    autowah.SetLevel(0.1f);
+    autowah.SetWah(0.01f);
+    
+    overdrive.Init();
+    overdrive.SetDrive(0.1f);
+}
 
-    float sr = hw.AudioSampleRate();
-    for(int i = 0; i < kNumVoices; i++)
-        voices[i].Init(sr);
 
+//---------------------------------------------------------------------
+// Main
+//---------------------------------------------------------------------
+int main(void) {
+    // ----Hardware init----
+    hw.Init();
+    hw.StartLog();
+
+    float audioSampleRate = hw.AudioSampleRate();
+    for(int i = 0; i < kNumVoices; i++) {
+        voices[i].Init(audioSampleRate);
+    }
     // Initialize MIDI UART
     MidiUartHandler::Config midi_cfg;
     midi_cfg.transport_config.periph = UartHandler::Config::Peripheral::USART_1;
-    // midi_cfg.transport_config.rx.pin = seed::D15; // UART1 RX pin
+   // midi_cfg.transport_config.rx.pin = seed::D15; // UART1 RX pin
     // midi_cfg.transport_config.tx.pin = seed::D16; // optional TX for MIDI Thru
     midi_uart.Init(midi_cfg);
     midi_uart.StartReceive();
     // midi_uart.SetReceiveCallback(HandleMidiMessage);
 
+    init_effects(audioSampleRate);
+
     // Start audio
     hw.StartAudio(AudioCallback);
     hw.SetLed(false);
-    hw.PrintLine("UART MIDI PolySynth Ready! 32 voices active.");
-    // voices[0].NoteOn(60, 127);
-    // voices[1].NoteOn(64, 127);
-    // voices[2].NoteOn(67, 127);
+    System::Delay(1000);
+    hw.PrintLine("UART MIDI PolySynth Ready! %d voices active.", kNumVoices);
+    // voices[0].NoteOn(60, 40);
+    // voices[1].NoteOn(64, 40);
+    // voices[2].NoteOn(67, 40);
+    
 
-    while(1)
-    {
+    int loopcounter = 0;
+
+    while(1) {
+        // DEBUG
+        if(loopcounter == 1000) {
+            HandleNoteOn(daisy::NoteOnEvent{0, 60, 100});
+            // voices[0].NoteOn(60, 100);
+        } else if (loopcounter == 1005) {
+            HandleNoteOff(NoteOffEvent{0, 60, 0});
+            // voices[0].NoteOff();
+        } else if (loopcounter == 1010) {
+            HandleNoteOn(daisy::NoteOnEvent{0, 64, 100});
+            // voices[1].NoteOn(64, 100);
+        } else if (loopcounter == 1015) {
+            HandleNoteOff(NoteOffEvent{0, 64, 0});
+            // voices[1].NoteOff();
+        } else if (loopcounter == 1020) {
+            HandleNoteOn(daisy::NoteOnEvent{0, 67, 100});
+            // voices[2].NoteOn(67, 100);
+        } else if (loopcounter == 1025) {
+            HandleNoteOff(NoteOffEvent{0, 67, 0});
+            // voices[2].NoteOff();
+        } else if (loopcounter >= 2000) {
+            loopcounter = 0;
+            // voices[0].NoteOff();
+            // voices[1].NoteOff();
+            // voices[2].NoteOff();
+        }
+        loopcounter++;
+
         midi_uart.Listen();
 
         while(midi_uart.HasEvents()) {
