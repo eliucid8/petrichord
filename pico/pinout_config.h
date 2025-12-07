@@ -33,9 +33,10 @@ extern "C" {
 #define IMU_SDA 18
 #define IMU_SCL 19
 
-#define PRINT_AUDIO false
+#define PRINT_AUDIO true
 #define PRINT_IMU false
 #define PRINT_KEYS false
+#define PLOT_AUDIO false
 
 #define CHORD_MATRIX_ROWS 4
 #define CHORD_MATRIX_COLS 7

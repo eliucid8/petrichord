@@ -1,10 +1,5 @@
 #include "pinout_config.h"
 
-#define PRINT_KEYS false
-#define PRINT_AUDIO false
-#define PLOT_AUDIO false
-#define PRINT_IMU false
-
 static ChordController* g_chord_controller = nullptr;
 
 void binprintf(uint8_t v)
@@ -19,26 +14,6 @@ void binprintf(uint8_t v)
 uint8_t style_plate_state = 0;
 uint8_t imu_velocity = 127;
 void handle_strum_plate_irq(uint gpio, uint32_t events) {
-    // printf("Strum plate IRQ on pin %d, event %d\n", gpio, events == GPIO_IRQ_EDGE_RISE ? 1 : 0);
-
-    // uint8_t pin_bit = 0;
-    // switch(gpio) {
-    //     case 20: pin_bit = 1 << 0; break;
-    //     case 21: pin_bit = 1 << 1; break;
-    //     default: 
-    //         printf("WARNING: Unrecognized interrupt pin detected\n");
-    //         return; // unrecognized pin
-    // }
-
-    // if(events & GPIO_IRQ_EDGE_RISE) {
-    //     style_plate_state |= pin_bit;
-    // } else if(events & GPIO_IRQ_EDGE_FALL) {
-    //     style_plate_state &= ~pin_bit;
-    // } else {
-    //     printf("WARNING: Unrecognized interrupt event detected\n");
-    //     return; // unrecognized event
-    // }
-
     for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
         if(gpio_get(STRUM_PLATE_PINS[i])) {
             style_plate_state |= (1 << i);
@@ -135,6 +110,7 @@ int main()
     MicPitchDetector pitch;
     pitch.init(); 
     const float min_sound = 23000.0f; //smallest note
+    printf("Mic initialized without crashing\n");
 
     int loop_counter = 0;
 
