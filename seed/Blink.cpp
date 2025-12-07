@@ -18,17 +18,35 @@ constexpr float kVelocityScale = 1.0f / 127.0f;
 MidiUartHandler midi_uart;
 uint8_t numVoicesActive = 0;
 
+uint8_t selected_instrument = 0;
+
 // OPTIMIZE ugly global variables
 float g_attack = 0.01f;
 float g_decay = 0.1f;
 float g_sustain = 0.7f;
-float g_release = 0.3f;
+float g_release = 0.9f;
 
 bool debugLED = false;;
 
 // Effects
 Overdrive overdrive;
 Autowah autowah;
+Wavefolder wavefolder;
+
+struct Instrument
+{
+    const uint8_t waveform;
+    const float overdrive;
+    const float wavefolder_gain;
+};
+
+const Instrument instruments[5] = {
+   {Oscillator::WAVE_POLYBLEP_TRI, 0.1, 1.5}, 
+   {Oscillator::WAVE_POLYBLEP_SAW, 0.5, 1.0}, 
+   {Oscillator::WAVE_SIN, 0.0, 1.7}, 
+   {Oscillator::WAVE_POLYBLEP_SAW, 0.2, 1.7}, 
+   {Oscillator::WAVE_POLYBLEP_SQUARE, 0.0, 1.0}, 
+};
 
 //---------------------------------------------------------------------
 // Voice definition
@@ -63,6 +81,7 @@ struct Voice
     {
         float freq = mtof(note_in);
         osc.SetFreq(freq);
+        osc.SetWaveform(instruments[selected_instrument].waveform);
         velocity = vel * kVelocityScale;
         gate     = true;
         note     = note_in;
@@ -191,12 +210,13 @@ void AudioCallback(AudioHandle::InputBuffer in,
         // global effects
         // mix = autowah.Process(mix);
 
+        mix = wavefolder.Process(mix);
         mix = overdrive.Process(mix);
         
         mix *= 1.0f / sqrtf(static_cast<float>(active_voices));
         // assuming we have a max of 16 voices running at max volume, we will end up with 4x the original range of the oscillator.
         // thus we divide by 4 to get something within output range.
-        // mix *= 0.25f;
+        mix *= 0.5f;
         // hw.PrintLine(FLT_FMT3, FLT_VAR3(mix));
 
         out[0][i] = mix;
@@ -221,13 +241,30 @@ void blink(void) {
     hw.SetLed(debugLED);
 }
 
+// divides analog input into 5 levels.
+uint8_t divide_resistor_ladder(uint16_t pot) {
+    if(pot < 8192) { // 2^16 * 1/8
+        return 0;
+    }
+    if(pot < 24576) { // 2^16 * 3/8 
+        return 1;
+    }
+    if(pot < 40960) { // 2^16 * 5/8 
+        return 2;
+    }
+    if(pot < 57344) { // 2^16 * 7/8 
+        return 3;
+    }
+    return 4;
+}
+
 /**
  * init global sound effects
  * float fs: sample rate
  */
 void init_effects(float fs) {
     // Create an array of AdcChannelConfig objects
-    const int NUM_ADC_CHANNELS = 4;
+    const int NUM_ADC_CHANNELS = 6;
     AdcChannelConfig my_adc_config[NUM_ADC_CHANNELS];
     // Initialize.
     // OPTIMIZE put this into functions or something
@@ -235,6 +272,8 @@ void init_effects(float fs) {
     my_adc_config[1].InitSingle(A1);
     my_adc_config[2].InitSingle(A2);
     my_adc_config[3].InitSingle(A3);
+    my_adc_config[4].InitSingle(A4);
+    my_adc_config[5].InitSingle(A5);
     // Initialize the ADC peripheral with that configuration
     hw.adc.Init(my_adc_config, NUM_ADC_CHANNELS);
     // Start the ADC
@@ -247,6 +286,10 @@ void init_effects(float fs) {
     
     overdrive.Init();
     overdrive.SetDrive(0.1f);
+    
+    wavefolder.Init();
+    wavefolder.SetGain(1.5f);
+    // wavefolder.SetOffset(0.05f);
 }
 
 
@@ -276,54 +319,24 @@ int main(void) {
     // Start audio
     hw.StartAudio(AudioCallback);
     hw.SetLed(false);
-    System::Delay(1000);
     hw.PrintLine("UART MIDI PolySynth Ready! %d voices active.", kNumVoices);
-    // voices[0].NoteOn(60, 40);
-    // voices[1].NoteOn(64, 40);
-    // voices[2].NoteOn(67, 40);
-    
-
-    int loopcounter = 0;
 
     while(1) {
-        // DEBUG
-        if(loopcounter == 1000) {
-            HandleNoteOn(daisy::NoteOnEvent{0, 60, 100});
-            // voices[0].NoteOn(60, 100);
-        } else if (loopcounter == 1005) {
-            HandleNoteOff(NoteOffEvent{0, 60, 0});
-            // voices[0].NoteOff();
-        } else if (loopcounter == 1010) {
-            HandleNoteOn(daisy::NoteOnEvent{0, 64, 100});
-            // voices[1].NoteOn(64, 100);
-        } else if (loopcounter == 1015) {
-            HandleNoteOff(NoteOffEvent{0, 64, 0});
-            // voices[1].NoteOff();
-        } else if (loopcounter == 1020) {
-            HandleNoteOn(daisy::NoteOnEvent{0, 67, 100});
-            // voices[2].NoteOn(67, 100);
-        } else if (loopcounter == 1025) {
-            HandleNoteOff(NoteOffEvent{0, 67, 0});
-            // voices[2].NoteOff();
-        } else if (loopcounter >= 2000) {
-            loopcounter = 0;
-            // voices[0].NoteOff();
-            // voices[1].NoteOff();
-            // voices[2].NoteOff();
-        }
-        loopcounter++;
-
         midi_uart.Listen();
 
         while(midi_uart.HasEvents()) {
             HandleMidiMessage(midi_uart.PopEvent());
             blink();
         }
-
-        g_attack = 2 * hw.adc.GetFloat(0);
-        g_decay = hw.adc.GetFloat(1);
-        g_sustain = hw.adc.GetFloat(2);
-        g_release = 3 * hw.adc.GetFloat(3);
+        g_attack = 3 * hw.adc.GetFloat(2);
+        g_decay = hw.adc.GetFloat(3);
+        g_sustain = hw.adc.GetFloat(4);
+        g_release = 3 * hw.adc.GetFloat(5);
+        
+        selected_instrument = divide_resistor_ladder(hw.adc.Get(1));
+        
+        overdrive.SetDrive(instruments[selected_instrument].overdrive);
+        wavefolder.SetGain(instruments[selected_instrument].wavefolder_gain);
         
         // bendAll(voices);
 
