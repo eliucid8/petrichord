@@ -21,6 +21,8 @@ uint8_t numVoicesActive = 0;
 uint8_t selected_instrument = 0;
 
 // OPTIMIZE ugly global variables
+float g_volume_control = 0.5f;
+
 float g_attack = 0.01f;
 float g_decay = 0.1f;
 float g_sustain = 0.7f;
@@ -151,14 +153,14 @@ void HandleNoteOn(daisy::NoteOnEvent msg) {
             v = FindFreeVoice();
         }
         v->NoteOn(msg.note, msg.velocity);
-        hw.PrintLine("ON\t%d\t%d", msg.note, msg.velocity);
+        // hw.PrintLine("ON\t%d\t%d", msg.note, msg.velocity);
     }
     else
     {
         Voice* v = FindVoiceByNote(msg.note);
         if(v) {
             v->NoteOff();
-            hw.PrintLine("OFF\t%d", msg.note);
+            // hw.PrintLine("OFF\t%d", msg.note);
         }
     }
 }
@@ -168,7 +170,7 @@ void HandleNoteOff(NoteOffEvent msg) {
     Voice* v = FindVoiceByNote(msg.note);
     if(v) {
         v->NoteOff();
-        hw.PrintLine("OFF\t%d", msg.note);
+        // hw.PrintLine("OFF\t%d", msg.note);
     }
 }
 
@@ -224,6 +226,7 @@ void AudioCallback(AudioHandle::InputBuffer in,
         // assuming we have a max of 16 voices running at max volume, we will end up with 4x the original range of the oscillator.
         // thus we divide by 4 to get something within output range.
         mix *= 0.5f;
+        mix *= g_volume_control;
         // hw.PrintLine(FLT_FMT3, FLT_VAR3(mix));
 
         out[0][i] = mix;
@@ -237,7 +240,7 @@ void bendAll(Voice voices[]) {
             float bend = (g_decay - 0.5f) * 16.0f;
             float note = voices[i].note + bend;
             float freq = mtof(note);
-            hw.PrintLine(FLT_FMT3, FLT_VAR3(note));
+            // hw.PrintLine(FLT_FMT3, FLT_VAR3(note));
             voices[i].osc.SetFreq(freq);
         }
     }
@@ -306,7 +309,8 @@ void init_effects(float fs) {
 int main(void) {
     // ----Hardware init----
     hw.Init();
-    hw.StartLog();
+    // Under normal behavior, pauses execution until serial monitor is started?
+    // hw.StartLog();
 
     float audioSampleRate = hw.AudioSampleRate();
     for(int i = 0; i < kNumVoices; i++) {
@@ -326,7 +330,7 @@ int main(void) {
     // Start audio
     hw.StartAudio(AudioCallback);
     hw.SetLed(false);
-    hw.PrintLine("UART MIDI PolySynth Ready! %d voices active.", kNumVoices);
+    // hw.PrintLine("UART MIDI PolySynth Ready! %d voices active.", kNumVoices);
 
     while(1) {
         midi_uart.Listen();
@@ -335,12 +339,14 @@ int main(void) {
             HandleMidiMessage(midi_uart.PopEvent());
             blink();
         }
+        g_volume_control = hw.adc.GetFloat(0);
+
+        selected_instrument = divide_resistor_ladder(hw.adc.Get(1));
+
         g_attack = 3 * hw.adc.GetFloat(2);
         g_decay = hw.adc.GetFloat(3);
         g_sustain = hw.adc.GetFloat(4);
         g_release = 3 * hw.adc.GetFloat(5);
-        
-        selected_instrument = divide_resistor_ladder(hw.adc.Get(1));
         
         overdrive.SetDrive(instruments[selected_instrument].overdrive);
         enable_overdrive = (instruments[selected_instrument].overdrive > 0.0f);
