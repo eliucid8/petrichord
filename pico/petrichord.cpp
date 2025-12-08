@@ -11,14 +11,39 @@ void binprintf(uint8_t v)
     }
 }
 
-uint8_t style_plate_state = 0;
+bool i2c_read_reg(uint8_t dev_addr, uint8_t reg, uint8_t *out, size_t len) {
+    int ret = i2c_write_blocking(i2c1, dev_addr, &reg, 1, true); // send reg, keep master
+    if (ret < 0) return false;
+    ret = i2c_read_blocking(i2c1, dev_addr, out, len, false);
+    return (ret >= 0);
+}
+
+
+uint16_t style_plate_state = 0;
 uint8_t imu_velocity = 127;
 void handle_strum_plate_irq(uint gpio, uint32_t events) {
-    for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
-        if(gpio_get(STRUM_PLATE_PINS[i])) {
-            style_plate_state |= (1 << i);
+    // printf("Strum plate IRQ on GPIO %d, events: 0x%08X\n", gpio, events);
+    style_plate_state = 0;
+    if(gpio == IO_INTN) {
+
+        uint8_t port0 = 0;
+        uint8_t port1 = 0;
+        if (i2c_read_reg(AW9523_ADDR, GET_PORT0, &port0, 1) &&
+            i2c_read_reg(AW9523_ADDR, GET_PORT1, &port1, 1)) {
+            // printf("INT: AW9523 GPIO States - Port0: 0x%02X, Port1: 0x%02X\n", port0, port1);
         } else {
-            style_plate_state &= ~(1 << i);
+            printf("INT: Failed to read AW9523 GPIO states\n");
+        }
+
+        uint16_t aw_gpio_state = (port0 << 8) | port1;
+        style_plate_state = aw_gpio_state;
+        // printf("INT: Style plate state from AW9523: 0x%04X\n", style_plate_state);
+
+    } else {
+        for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
+            if(!gpio_get(STRUM_PLATE_PINS[i])) {
+                style_plate_state = (1 << i);
+            } 
         }
     }
 
@@ -26,10 +51,12 @@ void handle_strum_plate_irq(uint gpio, uint32_t events) {
     if(key_selected != STYLE_PLATE_MAP.end()) {
         // valid style plate state detected
         uint8_t style_index = key_selected->second;
-        g_chord_controller->update_note(style_index, imu_velocity);
+        g_chord_controller->update_note(style_index - 1, imu_velocity);
     } else {
         g_chord_controller->update_note(255, 0);
     }
+
+    // gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
 
 void init_io() {
@@ -51,34 +78,78 @@ void init_io() {
     sleep_ms(1000);
     // I2C Initialization
     i2c_init(I2C_CHANNEL_ONE, 400 * 1000);  // 400 kHz i2c1 channel
-    gpio_init(IMU_SCL);
-    gpio_init(IMU_SDA);
-    gpio_set_function(IMU_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(IMU_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(IMU_SDA);
-    gpio_pull_up(IMU_SCL);
-
+    gpio_init(IO_SCL);
+    gpio_init(IO_SDA);
+    gpio_set_function(IO_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(IO_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(IO_SDA);
+    gpio_pull_up(IO_SCL);
     
+}
+
+void setup_interrupts() {
     gpio_init(STRUM_PLATE_PINS[0]);
-        gpio_set_dir(STRUM_PLATE_PINS[0], GPIO_IN);
-        gpio_set_irq_enabled_with_callback(
-            STRUM_PLATE_PINS[0],
-            GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-            true,
-            &handle_strum_plate_irq
+    gpio_set_dir(STRUM_PLATE_PINS[0], GPIO_IN);
+    gpio_pull_up(STRUM_PLATE_PINS[0]);
+    gpio_set_irq_enabled_with_callback(
+        STRUM_PLATE_PINS[0],
+        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+        true,
+        &handle_strum_plate_irq
     );
 
     for(int i = 1; i < STRUM_PLATE_COUNT; i++) {
         gpio_init(STRUM_PLATE_PINS[i]);
         gpio_set_dir(STRUM_PLATE_PINS[i], GPIO_IN);
+        gpio_pull_up(STRUM_PLATE_PINS[i]);
         gpio_set_irq_enabled(
             STRUM_PLATE_PINS[i],
             GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
             true
         );   
     }
-    
+
+    gpio_init(IO_INTN);
+    gpio_set_dir(IO_INTN, GPIO_IN);
+    gpio_pull_up(IO_INTN);
+
+    gpio_set_irq_enabled(
+        IO_INTN,
+        GPIO_IRQ_EDGE_FALL,
+        true
+    );
 }
+
+bool i2c_write_reg(uint8_t dev_addr, uint8_t reg, const uint8_t *data, size_t len) {
+    uint8_t buf[1 + len];
+    buf[0] = reg;
+    for (size_t i = 0; i < len; ++i) buf[1 + i] = data[i];
+    int ret = i2c_write_blocking(i2c1, dev_addr, buf, 1 + len, false);
+    return (ret >= 0);
+}
+void aw9523_init_device() {
+    uint8_t chip_id = 0;   
+    if (i2c_read_reg(AW9523_ADDR, GET_REG_CHIPID, &chip_id, 1)) {
+        printf("AW9523 Chip ID: 0x%02X\n", chip_id);
+    } else {
+        printf("Failed to read AW9523 Chip ID\n");
+    }
+
+    printf("Initializing AW9523 IO Expander...\n");
+
+    // Configure all pins as inputs
+    uint8_t config_data[2] = {0xFF, 0xFF}; // Set all pins as inputs
+    if(i2c_write_reg(AW9523_ADDR, CONFIG_PORT0, config_data, 1) &&
+       i2c_write_reg(AW9523_ADDR, CONFIG_PORT1, config_data + 1, 1)) {
+        printf("Configured all AW9523 pins as inputs\n");
+    } else {
+        printf("Failed to configure AW9523 pins\n");
+    }
+
+    printf("AW9523 initialization complete\n");
+}
+
+uint8_t gpio_states[2] = {0, 0};
 
 
 int main()
@@ -91,6 +162,9 @@ int main()
     ChordController chord_controller(&midi_messenger);
     KeyMatrixController key_matrix_controller(CHORD_MATRIX_ROWS, CHORD_MATRIX_COLS, 1, 30);
 
+    // sleep_ms(5000);
+    aw9523_init_device();
+    printf("IO Extender initialized\n");
 
     // IMU Controller Initialization
     IMU_Controller imu_controller;
@@ -110,7 +184,9 @@ int main()
     MicPitchDetector pitch;
     pitch.init(); 
     const float min_sound = 23000.0f; //smallest note
-    printf("Mic initialized without crashing\n");
+    // printf("Mic initialized without crashing\n");
+
+    setup_interrupts();
 
     int loop_counter = 0;
 
@@ -156,7 +232,7 @@ int main()
             struct imu_xyz_data g;
             imu_controller.readGravityVector(&g);
 
-            float velocity_float = (std::abs(g.z) / 9.81f) * 127.0f;
+            float velocity_float = (std::abs(g.y) / 9.81f) * 127.0f;
             // convert to uint8_t safely
             if (velocity_float > 127.0f) {
                 imu_velocity = 127;
@@ -167,7 +243,24 @@ int main()
             }
 
             if(PRINT_IMU) {
-                printf("IMU Velocity: %d\n", imu_velocity);
+                // imu_controller.debugPrint();
+                printf("Computed velocity: %d\n", imu_velocity);
+            }
+
+            if (i2c_read_reg(AW9523_ADDR, GET_PORT0, &gpio_states[0], 1) &&
+                i2c_read_reg(AW9523_ADDR, GET_PORT1, &gpio_states[1], 1)) {
+                // printf("AW9523 GPIO States - Port0: 0x%02X, Port1: 0x%02X\n", gpio_states[0], gpio_states[1]);
+            } else {
+                printf("Failed to read AW9523 GPIO states\n");
+            }
+        }
+
+        if(PRINT_IO_EXTENDER) {
+            if (i2c_read_reg(AW9523_ADDR, GET_PORT0, &gpio_states[0], 1) &&
+                i2c_read_reg(AW9523_ADDR, GET_PORT1, &gpio_states[1], 1)) {
+                printf("AW9523 GPIO States - Port0: 0x%02X, Port1: 0x%02X\n", gpio_states[0], gpio_states[1]);
+            } else {
+                printf("Failed to read AW9523 GPIO states\n");
             }
         }
         

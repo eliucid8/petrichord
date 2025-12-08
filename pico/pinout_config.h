@@ -22,6 +22,7 @@ extern "C" {
 
 #include "controllers/imu_controller.h"
 #include "controllers/key_matrix_controller.h"
+#include "controllers/io_extender.h"
 // #include "FreeRTOS.h"
 // #include "task.h"
 #include <map>
@@ -30,13 +31,18 @@ extern "C" {
 
 // I2C Constants
 #define I2C_CHANNEL_ONE i2c1
-#define IMU_SDA 18
-#define IMU_SCL 19
 
-#define PRINT_AUDIO true
+#define IO_SDA 14
+#define IO_SCL 15
+#define IO_INTN 9
+
+#define PRINT_AUDIO false
 #define PRINT_IMU false
 #define PRINT_KEYS false
 #define PLOT_AUDIO false
+#define PRINT_IO_EXTENDER false
+
+#define DEBUG_STRUM_IRQ
 
 #define CHORD_MATRIX_ROWS 4
 #define CHORD_MATRIX_COLS 7
@@ -44,30 +50,31 @@ extern "C" {
 const uint8_t ROW_PINS[4] = {10, 11, 12, 13, };
 const uint8_t COL_PINS[7] = {2, 3, 4, 5, 6, 7, 8, };
 
-#define STRUM_PLATE_COUNT 2
-const uint8_t STRUM_PLATE_PINS[STRUM_PLATE_COUNT] = {20, 21,};
+#define STRUM_PLATE_COUNT 6
+const uint8_t STRUM_PLATE_PINS[STRUM_PLATE_COUNT] = {16, 17, 18, 19, 20, 21};
 
 // MUST MATCH PHYSICAL CHARLIEPLEXING STYLE PLATE WIRING
-const std::map<uint8_t, uint8_t> STYLE_PLATE_MAP = {
-    {0b0000011, 0},
-    {0b0000101, 1},
-    {0b0001001, 2},
-    {0b0010001, 3},
-    {0b0100001, 4},
-    {0b1000001, 5},
-    {0b0000110, 6},
-    {0b0001010, 7},
-    {0b0010010, 8},
-    {0b0100010, 9},
-    {0b1000010, 10},
-    {0b0001100, 11},
-    {0b0010100, 12},
-    {0b0100100, 13},
-    {0b1000100, 14},
-    {0b0011000, 15},
-    {0b0101000, 16},
-    {0b1001000, 17},
-    {0b0110000, 18},
-    {0b1010000, 19},
-    {0b1100000, 20}
+const std::map<uint16_t, uint8_t> STYLE_PLATE_MAP = {
+    {0b000001, 6},
+    {0b000010, 5},
+    {0b000100, 4},
+    {0b001000, 3},
+    {0b010000, 2},
+    {0b100000, 1},
+    {0xFEFF, 11},
+    {0xFDFF, 22},
+    {0xFBFF, 21},
+    {0xF7FF, 20},
+    {0xFFFE, 7},
+    {0x7FFF, 16},
+    {0xBFFF, 17},
+    {0xDFFF, 18},
+    {0xEFFF, 19},
+    {0xFF7F, 12},
+    {0xFFBF, 13},
+    {0xFFDF, 14},
+    {0xFFEF, 15},
+    {0xFFF7, 10},
+    {0xFFFB, 9},
+    {0xFFFD, 8}
 };

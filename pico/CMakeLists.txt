@@ -48,6 +48,7 @@ add_executable(petrichord
     io/mic_input.cpp
     controllers/imu_controller.cpp
     controllers/key_matrix_controller.cpp
+    controllers/io_extender.cpp
 )
 
 pico_set_program_name(petrichord "petrichord")
