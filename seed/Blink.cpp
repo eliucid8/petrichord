@@ -29,8 +29,11 @@ float g_release = 0.9f;
 bool debugLED = false;;
 
 // Effects
+bool enable_overdrive = true;
 Overdrive overdrive;
+bool enable_autowah = false;
 Autowah autowah;
+bool enable_wavefolder = true;
 Wavefolder wavefolder;
 
 struct Instrument
@@ -41,11 +44,11 @@ struct Instrument
 };
 
 const Instrument instruments[5] = {
-   {Oscillator::WAVE_POLYBLEP_TRI, 0.1, 1.5}, 
-   {Oscillator::WAVE_POLYBLEP_SAW, 0.5, 1.0}, 
-   {Oscillator::WAVE_SIN, 0.0, 1.7}, 
-   {Oscillator::WAVE_POLYBLEP_SAW, 0.2, 1.7}, 
-   {Oscillator::WAVE_POLYBLEP_SQUARE, 0.0, 1.0}, 
+   {Oscillator::WAVE_POLYBLEP_TRI, 0.1f, 1.5f}, 
+   {Oscillator::WAVE_POLYBLEP_SAW, 0.5f, 1.0f}, 
+   {Oscillator::WAVE_SIN, 0.00f, 1.7f}, 
+   {Oscillator::WAVE_POLYBLEP_SAW, 0.2f, 1.7f}, 
+   {Oscillator::WAVE_POLYBLEP_SQUARE, 0.0f, 1.0f}, 
 };
 
 //---------------------------------------------------------------------
@@ -210,8 +213,12 @@ void AudioCallback(AudioHandle::InputBuffer in,
         // global effects
         // mix = autowah.Process(mix);
 
-        mix = wavefolder.Process(mix);
-        mix = overdrive.Process(mix);
+        if(enable_wavefolder) {
+            mix = wavefolder.Process(mix);
+        }
+        if(enable_overdrive) {
+            mix = overdrive.Process(mix);
+        }
         
         mix *= 1.0f / sqrtf(static_cast<float>(active_voices));
         // assuming we have a max of 16 voices running at max volume, we will end up with 4x the original range of the oscillator.
@@ -336,8 +343,10 @@ int main(void) {
         selected_instrument = divide_resistor_ladder(hw.adc.Get(1));
         
         overdrive.SetDrive(instruments[selected_instrument].overdrive);
+        enable_overdrive = (instruments[selected_instrument].overdrive > 0.0f);
         wavefolder.SetGain(instruments[selected_instrument].wavefolder_gain);
-        
+        enable_wavefolder = (instruments[selected_instrument].wavefolder_gain > 0.0f);
+
         // bendAll(voices);
 
         System::Delay(1);
