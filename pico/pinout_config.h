@@ -37,12 +37,12 @@ extern "C" {
 #define IO_INTN 9
 
 #define PRINT_AUDIO false
-#define PRINT_IMU false
+#define PRINT_IMU true
 #define PRINT_KEYS false
 #define PLOT_AUDIO false
 #define PRINT_IO_EXTENDER false
 
-#define DEBUG_STRUM_IRQ
+// #define DEBUG_STRUM_IRQ
 
 #define CHORD_MATRIX_ROWS 4
 #define CHORD_MATRIX_COLS 7

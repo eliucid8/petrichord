@@ -22,7 +22,7 @@ public:
             uart_putc(uart, msg[i]);
         }
 
-        // printf("Sent MIDI Note On: Pitch %d, Velocity %d\n", note.pitch, note.velocity);
+        // printf("(%d, %d)\n", note.pitch, note.velocity);
     }
 
     void send_midi_note_off(Note note) {
@@ -34,7 +34,7 @@ public:
             uart_putc(uart, msg[i]);
         }
 
-        // printf("Sent MIDI Note Off: Pitch %d\n", note.pitch);
+        // printf("OFF %d\n", note.pitch);
     }
     
     /**
