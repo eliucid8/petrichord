@@ -10,9 +10,11 @@ void ChordController::update_note(uint8_t plate_number, uint8_t velocity) {
     }
 
     // printf("ChordController: Strum plate %d activated with velocity %d\n", plate_number, velocity);
+    // dont accidentally spam the note if the same plate is hit again
 
     if(plate_number < chord.size()) {
         // valid note
+        // printf("ChordController: Playing note %d with velocity %d\n", chord[plate_number].pitch, playing_note.velocity);
         playing_note.pitch = chord[plate_number].pitch;
         midi->send_midi_note_on(playing_note);
     } else {
@@ -41,7 +43,7 @@ void ChordController::update_key_state(const std::vector<std::vector<bool>>& key
     // prevents key releases from changing the chord.
     if(!chord_info.second.empty()) {
         chord = generate_chord(
-            chord_info.first + 36, // the root + 3 octaves = 36   
+            chord_info.first + 12, // the root + 3 octaves = 36   
             chord_info.second, // the chord intervals
             22 // extent--max number of notes in chord
         );

@@ -23,38 +23,7 @@ uint16_t style_plate_state = 0;
 uint8_t imu_velocity = 127;
 void handle_strum_plate_irq(uint gpio, uint32_t events) {
     // printf("Strum plate IRQ on GPIO %d, events: 0x%08X\n", gpio, events);
-    style_plate_state = 0;
-    if(gpio == IO_INTN) {
-
-        uint8_t port0 = 0;
-        uint8_t port1 = 0;
-        if (i2c_read_reg(AW9523_ADDR, GET_PORT0, &port0, 1) &&
-            i2c_read_reg(AW9523_ADDR, GET_PORT1, &port1, 1)) {
-            // printf("INT: AW9523 GPIO States - Port0: 0x%02X, Port1: 0x%02X\n", port0, port1);
-        } else {
-            printf("INT: Failed to read AW9523 GPIO states\n");
-        }
-
-        uint16_t aw_gpio_state = (port0 << 8) | port1;
-        style_plate_state = aw_gpio_state;
-        // printf("INT: Style plate state from AW9523: 0x%04X\n", style_plate_state);
-
-    } else {
-        for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
-            if(!gpio_get(STRUM_PLATE_PINS[i])) {
-                style_plate_state = (1 << i);
-            } 
-        }
-    }
-
-    auto key_selected = STYLE_PLATE_MAP.find(style_plate_state);
-    if(key_selected != STYLE_PLATE_MAP.end()) {
-        // valid style plate state detected
-        uint8_t style_index = key_selected->second;
-        g_chord_controller->update_note(style_index - 1, imu_velocity);
-    } else {
-        g_chord_controller->update_note(255, 0);
-    }
+    
 
     // gpio_set_irq_enabled(gpio, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
@@ -91,33 +60,33 @@ void setup_interrupts() {
     gpio_init(STRUM_PLATE_PINS[0]);
     gpio_set_dir(STRUM_PLATE_PINS[0], GPIO_IN);
     gpio_pull_up(STRUM_PLATE_PINS[0]);
-    gpio_set_irq_enabled_with_callback(
-        STRUM_PLATE_PINS[0],
-        GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-        true,
-        &handle_strum_plate_irq
-    );
+    // gpio_set_irq_enabled_with_callback(
+    //     STRUM_PLATE_PINS[0],
+    //     GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+    //     true,
+    //     &handle_strum_plate_irq
+    // );
 
     for(int i = 1; i < STRUM_PLATE_COUNT; i++) {
         gpio_init(STRUM_PLATE_PINS[i]);
         gpio_set_dir(STRUM_PLATE_PINS[i], GPIO_IN);
         gpio_pull_up(STRUM_PLATE_PINS[i]);
-        gpio_set_irq_enabled(
-            STRUM_PLATE_PINS[i],
-            GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-            true
-        );   
+        // gpio_set_irq_enabled(
+        //     STRUM_PLATE_PINS[i],
+        //     GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+        //     true
+        // );   
     }
 
-    gpio_init(IO_INTN);
-    gpio_set_dir(IO_INTN, GPIO_IN);
-    gpio_pull_up(IO_INTN);
+    // gpio_init(IO_INTN);
+    // gpio_set_dir(IO_INTN, GPIO_IN);
+    // gpio_pull_up(IO_INTN);
 
-    gpio_set_irq_enabled(
-        IO_INTN,
-        GPIO_IRQ_EDGE_FALL,
-        true
-    );
+    // gpio_set_irq_enabled(
+    //     IO_INTN,
+    //     GPIO_IRQ_EDGE_FALL,
+    //     true
+    // );
 }
 
 bool i2c_write_reg(uint8_t dev_addr, uint8_t reg, const uint8_t *data, size_t len) {
@@ -186,31 +155,36 @@ int main()
     const float min_sound = 23000.0f; //smallest note
     // printf("Mic initialized without crashing\n");
 
+    sleep_ms(1000); // wait for everything to settle
+    printf("Setting up interrupts.\n");
     setup_interrupts();
+    printf("Entering main loop.\n");
 
     int loop_counter = 0;
+
+    int prev_state = 0;
 
     while(true) {
         loop_counter++;
         // =========
         // mic stuff
         // =========
-        auto pr = pitch.update();  //updates mic info
-        if(PLOT_AUDIO) {
-            pitch.bins_for_plotter();   //prints amplitude frequencies 
-        }
+        // auto pr = pitch.update();  //updates mic info
+        // if(PLOT_AUDIO) {
+        //     pitch.bins_for_plotter();   //prints amplitude frequencies 
+        // }
 
-        if(pr.amplitude >= min_sound){
-            if(PRINT_AUDIO) {
-                printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
-                pr.freq_hz, pr.name, pr.amplitude);
-            } 
-            g_chord_controller->update_voice_pitch(pr.midi);
-        } else {
-            if(PRINT_AUDIO) {
-                printf("no pitch / too quiet\n");
-            }
-        }
+        // if(pr.freq_hz != 0.0f){
+        //     if(PRINT_AUDIO) {
+        //         printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
+        //         pr.freq_hz, pr.name, pr.amplitude);
+        //     } 
+        //     g_chord_controller->update_voice_pitch(pr.midi);
+        // } else {
+        //     if(PRINT_AUDIO) {
+        //         printf("no pitch / too quiet\n");
+        //     }
+        // }
         
         // ======================
         // chord key matrix stuff
@@ -226,13 +200,13 @@ int main()
         // imu stuff
         // =========
         // update every 10 cycles
-        if(imu_controller.initialized() && loop_counter == 10) {
+        if(loop_counter == 10) {
             loop_counter = 0;
             // Read vector
             struct imu_xyz_data g;
             imu_controller.readGravityVector(&g);
 
-            float velocity_float = (std::abs(g.y) / 9.81f) * 127.0f;
+            float velocity_float = (std::abs(g.x) / 9.81f) * 127.0f;
             // convert to uint8_t safely
             if (velocity_float > 127.0f) {
                 imu_velocity = 127;
@@ -253,6 +227,48 @@ int main()
             } else {
                 printf("Failed to read AW9523 GPIO states\n");
             }
+        }
+
+        style_plate_state = 0;
+        uint8_t port0 = 0;
+        uint8_t port1 = 0;
+        if (i2c_read_reg(AW9523_ADDR, GET_PORT0, &port0, 1) &&
+            i2c_read_reg(AW9523_ADDR, GET_PORT1, &port1, 1)) {
+            // printf("INT: AW9523 GPIO States - Port0: 0x%02X, Port1: 0x%02X\n", port0, port1);
+        } else {
+            printf("INT: Failed to read AW9523 GPIO states\n");
+        }
+
+        if(port0 == 0xFF && port1 == 0xFF) {
+            // no style plate pressed
+            for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
+                if(!gpio_get(STRUM_PLATE_PINS[i])) {
+                    style_plate_state = (1 << i);
+                    // printf("Strum plate %d detected via GPIO\n", 6 - i);
+                } 
+            }
+        } else {
+            uint16_t aw_gpio_state = (port0 << 8) | port1;
+            style_plate_state = aw_gpio_state;
+            // printf("Style plate state from AW9523: ");
+            // binprintf(port0);
+            // binprintf(port1);
+            // printf(" (0x%04X)\n", style_plate_state);
+        }
+
+        
+        // printf("Style plate state: 0x%04X, Velocity: %d\n", style_plate_state, imu_velocity);
+
+        auto key_selected = STYLE_PLATE_MAP.find(style_plate_state);
+        if(key_selected != STYLE_PLATE_MAP.end()) {
+            // printf("Style plate %d selected\n", key_selected->second);
+            if(prev_state != key_selected->second) {
+                prev_state = key_selected->second;
+                uint8_t style_index = key_selected->second;
+                g_chord_controller->update_note(style_index - 1, 127);
+            }
+        } else {
+            g_chord_controller->update_note(255, 0);
         }
 
         if(PRINT_IO_EXTENDER) {

@@ -8,26 +8,11 @@ extern "C" {
 // pitch-oriented bins (≈80–1300 Hz) **will modify for pitch
 //range between 200 - 2000 for voice
 //right now only using baseline between 200 - 13000 
-/*
-PitchBin PITCH_BINS[] = {
-    {"80–110",      80,  110, 0},
-    {"110–140",    110,  140, 0},
-    {"140–180",    140,  180, 0},
-    {"180–230",    180,  230, 0},
-    {"230–290",    230,  290, 0},
-    {"290–360",    290,  360, 0},
-    {"360–450",    360,  450, 0},
-    {"450–560",    450,  560, 0},
-    {"560–700",    560,  700, 0},
-    {"700–880",    700,  880, 0},
-    {"880–1100",   880, 1100, 0},
-    {"1100–1300", 1100, 1300, 0},
-}; 
-*/
 
+//***vielleicht issues in btw shared min/max vals...***
 // name, min, max, amplitude, midi 
 PitchBin PITCH_BINS[] = {
-    {"C3",  127.15,  134.7, 0, 48},         //130.8
+    {"C3",  127.15,  134.7, 0, 48},         //130.8  
     {"C#3", 134.7,  142.7, 0, 49},           //138.6
     {"D3",  142.7,  151.18, 0, 50},         //146.8
     {"D#3", 151.18,  160.185, 0, 51},       //155.56
@@ -115,6 +100,65 @@ PitchResult MicPitchDetector::update() {
         bins_[i].amplitude = tmp[i].amplitude;
     }
 
+    //calculate largest/best amp, 2nd best, avg amp 
+    int   best_idx   = 0;
+    int   second_idx = -1;
+    float best_amp   = bins_[0].amplitude;
+    float second_amp = 0.0f;
+    float sum_amp = 0.0f;
+
+    for (int i = 0; i < bin_count_; ++i) {
+        float a = bins_[i].amplitude;
+        sum_amp += a;
+
+        if (a > best_amp) {
+            second_amp = best_amp;
+            second_idx = best_idx;
+            best_amp   = a;
+            best_idx   = i;
+        } else if (a > second_amp && i != best_idx) {
+            second_amp = a;
+            second_idx = i;
+        }
+    }
+
+    float avg_amp = sum_amp / (float)bin_count_;
+
+    // Noise gate 
+    const float ABS_THRESHOLD   = 3000.0f;  //louder than room noise
+    const float DOMINANCE_RATIO = 3.0f;     //must be 3x the "background"
+    const float SECOND_RATIO    = 2.0f;     //must be 2x second-best
+
+    bool has_pitch = true;
+
+    //Cases:
+    //1 - abs amp too low? -> no pitch
+    if (best_amp < ABS_THRESHOLD) {
+        has_pitch = false;
+    }
+
+    //2 - not dominant over average noise? -> no pitch
+    if (avg_amp > 0.0f && best_amp < DOMINANCE_RATIO * avg_amp) {
+        has_pitch = false;
+    }
+
+    //3 - not dominant over second-best bin? -> no pitch
+    if (second_amp > 0.0f && best_amp < SECOND_RATIO * second_amp) {
+        has_pitch = false;
+    }
+
+    if (!has_pitch) {
+        // No pitch detected - dummy vals 
+        return PitchResult{
+            0.0f,        // freq_hz
+            best_amp,    // raw amplitude (could also be 0.0f if you prefer)
+            -1,          // bin_index
+            "NO_PITCH",  // name
+            -1           // midi
+        };
+    }
+
+    /*
     //dominant pitch
     int best = 0;
     float best_amp = bins_[0].amplitude;
@@ -126,6 +170,16 @@ PitchResult MicPitchDetector::update() {
 
     float center_hz = 0.5f * (bins_[best].freq_min + bins_[best].freq_max);
     return PitchResult{center_hz, best_amp, best, bins_[best].name, bins_[best].midi};
+
+    */
+    float center_hz = 0.5f * (bins_[best_idx].freq_min + bins_[best_idx].freq_max);
+    return PitchResult{
+        center_hz,
+        best_amp,
+        best_idx,
+        bins_[best_idx].name,
+        bins_[best_idx].midi
+    };
     //returns frequency, amplitude, indexing, name
 }
 
