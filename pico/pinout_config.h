@@ -40,7 +40,7 @@ extern "C" {
 #define IO_SCL 15
 #define IO_INTN 9
 
-#define PRINT_AUDIO true
+#define PRINT_AUDIO false
 #define PRINT_IMU false
 #define PRINT_KEYS false
 #define PLOT_AUDIO false
@@ -83,7 +83,7 @@ const std::map<uint16_t, uint8_t> STYLE_PLATE_MAP = {
     {0xFFFD, 8}
 };
 
-// === Shared pitch data between cores ===
+// === shared pitch btw cores ===
 static mutex_t pitch_mutex;
 static PitchResult latest_pitch;
-static bool pitch_ready = false;   // becomes true after first valid update
+static bool pitch_ready = false;   // = true after 1st update

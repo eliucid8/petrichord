@@ -22,7 +22,7 @@ bool i2c_read_reg(uint8_t dev_addr, uint8_t reg, uint8_t *out, size_t len) {
 uint16_t style_plate_state = 0;
 uint8_t imu_velocity = 127;
 void handle_strum_plate_irq(uint gpio, uint32_t events) {
-    // printf("Strum plate IRQ on GPIO %d, events: 0x%08X\n", gpio, events);
+    //printf("Strum plate IRQ on GPIO %d, events: 0x%08X\n", gpio, events); 
     style_plate_state = 0;
     if(gpio == IO_INTN) {
 
@@ -37,7 +37,7 @@ void handle_strum_plate_irq(uint gpio, uint32_t events) {
 
         uint16_t aw_gpio_state = (port0 << 8) | port1;
         style_plate_state = aw_gpio_state;
-        // printf("INT: Style plate state from AW9523: 0x%04X\n", style_plate_state);
+        ///printf("INT: Style plate state from AW9523: 0x%04X\n", style_plate_state);
 
     } else {
         for(uint8_t i = 0; i < STRUM_PLATE_COUNT; i++) {
@@ -151,13 +151,14 @@ void aw9523_init_device() {
 
 uint8_t gpio_states[2] = {0, 0};
 
-// =======================
-// Core 1: mic / FFT loop
-// =======================
+// =====================================
+// Core 1: mic / FFT + Pitch Processing
+// =====================================
 void core1_entry() {
 
     MicPitchDetector pitch;
     pitch.init();   
+    printf("mic initialized\n");
 
     while (true) {
         auto pr = pitch.update();
@@ -176,7 +177,9 @@ void core1_entry() {
     }
 }
 
-
+// =======================
+// Core 0: Everything else
+// =======================
 int main()
 {
     init_io();
@@ -219,7 +222,7 @@ int main()
         loop_counter++;
 
         // =========
-        // mic stuff
+        // mic stuff 
         // =========
 
         PitchResult pr; 
@@ -231,7 +234,6 @@ int main()
             have_pitch = true;
             pitch_ready = false; 
         }
-
         mutex_exit(&pitch_mutex); 
         
         if(have_pitch){
