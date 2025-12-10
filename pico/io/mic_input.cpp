@@ -126,12 +126,15 @@ PitchResult MicPitchDetector::update() {
 
     // Noise gate 
     const float ABS_THRESHOLD   = 3000.0f;  //louder than room noise
-    const float DOMINANCE_RATIO = 3.0f;     //must be 3x the "background"
-    const float SECOND_RATIO    = 2.0f;     //must be 2x second-best
+    const float DOMINANCE_RATIO = 1.8f;     //must be 3x the "background"
+    const float SECOND_RATIO    = 1.3f;     //must be 2x second-best
 
     bool has_pitch = true;
 
-    //Cases:
+    if (bins_[best_idx].midi > 87) {
+        has_pitch = false;
+    }
+
     //1 - abs amp too low? -> no pitch
     if (best_amp < ABS_THRESHOLD) {
         has_pitch = false;

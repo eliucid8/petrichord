@@ -86,6 +86,7 @@ target_link_libraries(petrichord
         pico_fft
         hardware_i2c
         hardware_irq
+        pico_multicore
         )
 
 pico_add_extra_outputs(petrichord)
