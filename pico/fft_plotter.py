@@ -26,6 +26,15 @@ import serial
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+NOTE_NAMES = [
+    "C3",  "C#3", "D3",  "D#3", "E3",  "F3",  "F#3",
+    "G3",  "G#3", "A3",  "A#3", "B",
+    "C4",  "C#4", "D4",  "D#4", "E4",  "F4",  "F#4",
+    "G4",  "G#4", "A4",  "A#4", "B4",
+    "C5",  "C#5", "D5",  "D#5", "E5",  "F5",  "F#5",
+    "G5",  "G#5", "A5",  "A#5", "B5",
+    "C6",  "C#6", "D6",  "D#6", "E6",
+]
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Plot Pico FFT bin amplitudes in real time.")
@@ -111,14 +120,48 @@ def main():
     print(f"Detected {num_bins} bins.")
 
     # --- Matplotlib setup ---
+    #fig, ax = plt.subplots()
+    #x = np.arange(num_bins)  # bin indices; you can relabel later with note names if you want
+    #bars = ax.bar(x, first_bins)
+
+    #ax.set_xlabel("Bin index")
+    #ax.set_ylabel("Amplitude")
+    #ax.set_title("Pico FFT Bin Amplitudes")
+    #ax.set_xlim(-0.5, num_bins - 0.5)
+    
+    # --- Matplotlib setup ---
     fig, ax = plt.subplots()
-    x = np.arange(num_bins)  # bin indices; you can relabel later with note names if you want
+    x = np.arange(num_bins)
+
+    #make sure NOTE_NAMES matches the number of bins
+    if len(NOTE_NAMES) != num_bins:
+        print(f"WARNING: NOTE_NAMES has {len(NOTE_NAMES)} entries, "
+              f"but Pico sent {num_bins} bins.")
+        # Fallback to generic labels if mismatch
+        labels = [f"Bin {i}" for i in range(num_bins)]
+    else:
+        labels = NOTE_NAMES
+
     bars = ax.bar(x, first_bins)
 
-    ax.set_xlabel("Bin index")
+    ax.set_xlabel("Pitch bin")
     ax.set_ylabel("Amplitude")
     ax.set_title("Pico FFT Bin Amplitudes")
     ax.set_xlim(-0.5, num_bins - 0.5)
+
+    # Use note names (or labels) on the x-axis
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=90)
+
+    # Set a reasonable initial y-limit
+    max_amp = max(first_bins) if first_bins else 1.0
+    if max_amp <= 0:
+        max_amp = 1.0
+    ax.set_ylim(0, max_amp * 1.2)
+
+    # Optional: grid
+    ax.grid(True, axis="y", linestyle="--", alpha=0.3)
+###########################################
 
     # Set a reasonable initial y-limit
     max_amp = max(first_bins) if first_bins else 1.0
