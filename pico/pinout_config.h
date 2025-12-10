@@ -11,6 +11,10 @@
 #include "hardware/i2c.h"
 #include "theory/note.h"
 
+//2nd core lib
+#include "pico/multicore.h"
+#include "pico/mutex.h"
+
 // #include "io/key_matrix.h"
 #include "io/strum_irq.h"
 #include "controllers/chord_controller.h"
@@ -37,8 +41,9 @@ extern "C" {
 #define IO_INTN 9
 
 #define PRINT_AUDIO false
-#define PRINT_IMU true
-#define PRINT_KEYS false
+#define PRINT_IMU false
+#define PRINT_MIDI false
+#define PRINT_KEYS true
 #define PLOT_AUDIO false
 #define PRINT_IO_EXTENDER false
 
@@ -78,3 +83,8 @@ const std::map<uint16_t, uint8_t> STYLE_PLATE_MAP = {
     {0xFFFB, 9},
     {0xFFFD, 8}
 };
+
+// === shared pitch btw cores ===
+static mutex_t pitch_mutex;
+static PitchResult latest_pitch;
+static bool pitch_ready = false;   // = true after 1st update

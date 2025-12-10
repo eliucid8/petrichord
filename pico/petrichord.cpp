@@ -120,14 +120,47 @@ void aw9523_init_device() {
 
 uint8_t gpio_states[2] = {0, 0};
 
+// =====================================
+// Core 1: mic / FFT + Pitch Processing
+// =====================================
+void core1_entry() {
 
+    MicPitchDetector pitch;
+    pitch.init();   
+    printf("mic initialized\n");
+
+    while (true) {
+        auto pr = pitch.update();
+
+        if (PLOT_AUDIO) {
+            pitch.bins_for_plotter();
+        }
+
+        // result -> shared variables
+        mutex_enter_blocking(&pitch_mutex);
+        latest_pitch = pr;
+        pitch_ready = true;
+        mutex_exit(&pitch_mutex);
+
+        sleep_ms(10);
+    }
+}
+
+// =======================
+// Core 0: Everything else
+// =======================
 int main()
 {
     init_io();
 
+    // Init shared pitch mutex
+    mutex_init(&pitch_mutex);
+
+    // Launch mic/FFT processing on core 1
+    multicore_launch_core1(core1_entry);
 
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
-    MidiMessenger midi_messenger(uart0, PRINT_KEYS);
+    MidiMessenger midi_messenger(uart0, PRINT_MIDI);
     ChordController chord_controller(&midi_messenger);
     KeyMatrixController key_matrix_controller(CHORD_MATRIX_ROWS, CHORD_MATRIX_COLS, 1, 30);
 
@@ -150,10 +183,6 @@ int main()
     std::vector<std::vector<bool>> pressed(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
     std::vector<std::vector<bool>> released(CHORD_MATRIX_ROWS, std::vector<bool>(CHORD_MATRIX_COLS, false));
 
-    MicPitchDetector pitch;
-    pitch.init(); 
-    const float min_sound = 23000.0f; //smallest note
-    // printf("Mic initialized without crashing\n");
 
     sleep_ms(1000); // wait for everything to settle
     printf("Setting up interrupts.\n");
@@ -166,32 +195,52 @@ int main()
 
     while(true) {
         loop_counter++;
-        // =========
-        // mic stuff
-        // =========
-        // auto pr = pitch.update();  //updates mic info
-        // if(PLOT_AUDIO) {
-        //     pitch.bins_for_plotter();   //prints amplitude frequencies 
-        // }
 
-        if(pr.freq_hz != 0.0f){
-            if(PRINT_AUDIO) {
-                printf("Pitch frequency: ~%.1f Hz  bin=%s  amp=%.3f\n",
-                pr.freq_hz, pr.name, pr.amplitude);
+        // =========
+        // mic stuff 
+        // =========
+
+        PitchResult pr; 
+        bool have_pitch = false; 
+        
+        mutex_enter_blocking(&pitch_mutex);
+        if (pitch_ready) {
+            pr = latest_pitch;
+            have_pitch = true;
+            pitch_ready = false; 
+        }
+        mutex_exit(&pitch_mutex); 
+        
+        if(have_pitch){
+            if (pr.freq_hz != 0.0f){
+                if(PRINT_AUDIO) {
+                    printf("Pitch frequency: ~%.1f Hz  bin=%s Midi=%d  amp=%.3f\n",
+                    pr.freq_hz, pr.name, pr.midi, pr.amplitude);
+                } 
+                g_chord_controller->update_voice_pitch(pr.midi);
             } 
-            g_chord_controller->update_voice_pitch(pr.midi);
-        } else {
-            if(PRINT_AUDIO) {
+            else {
+                if(PRINT_AUDIO) {
                 printf("no pitch / too quiet\n");
+                }
             }
         }
-        
+
         // ======================
         // chord key matrix stuff
         // ======================
         bool chords_changed = key_matrix_controller.poll_matrix_rising();
         if(chords_changed) {
             auto new_key_state = key_matrix_controller.get_key_state();
+            if(PRINT_KEYS) {
+                printf("chord_matrix changed:\n");
+                for(int i = 0; i < CHORD_MATRIX_ROWS; i++) {
+                    for(int j = 0; j < CHORD_MATRIX_COLS; j++) {
+                        printf(new_key_state[i][j] ? "1" : "0");
+                    }
+                    printf("\n");
+                }
+            }
             g_chord_controller->update_key_state(new_key_state);
         }
         
