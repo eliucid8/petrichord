@@ -32,7 +32,7 @@ public:
     };
 
     ChordController(MidiMessenger* midi): midi(midi) {
-        chord.push_back(Note(0, 0));
+        chord = generate_chord(12, MAJOR_INTERVALS, 22);
     }
 
     /**

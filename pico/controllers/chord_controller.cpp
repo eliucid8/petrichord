@@ -92,6 +92,6 @@ std::pair<uint8_t, std::vector<uint8_t>> ChordController::get_chord_intervals() 
 void ChordController::update_voice_pitch(const int voice_pitch) {
     // hardcoded location of pitch key.
     if(keys[3][2]) {
-        chord = generate_chord(voice_pitch - 12, MAJOR_INTERVALS, 4);
+        chord = generate_chord((voice_pitch % 12) + 12, MAJOR_INTERVALS, 22);
     }
 }

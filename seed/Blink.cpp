@@ -46,11 +46,11 @@ struct Instrument
 };
 
 const Instrument instruments[5] = {
-   {Oscillator::WAVE_POLYBLEP_TRI, 0.1f, 1.5f}, 
-   {Oscillator::WAVE_POLYBLEP_SAW, 0.5f, 1.0f}, 
-   {Oscillator::WAVE_SIN, 0.00f, 1.7f}, 
-   {Oscillator::WAVE_POLYBLEP_SAW, 0.2f, 1.7f}, 
-   {Oscillator::WAVE_POLYBLEP_SQUARE, 0.0f, 1.0f}, 
+    {Oscillator::WAVE_POLYBLEP_TRI, 0.1f, 1.0f}, 
+    {Oscillator::WAVE_POLYBLEP_SAW, 0.9f, 1.0f}, 
+    {Oscillator::WAVE_POLYBLEP_SQUARE, 0.0f, 1.0f}, 
+    {Oscillator::WAVE_SIN, 0.00f, 1.0f}, 
+    {Oscillator::WAVE_POLYBLEP_SAW, 0.2f, 1.0f}, 
 };
 
 //---------------------------------------------------------------------
@@ -95,6 +95,7 @@ struct Voice
         env.SetTime(ADSR_SEG_DECAY, g_decay);
         env.SetSustainLevel(g_sustain);
         env.SetTime(ADSR_SEG_RELEASE, g_release);
+        env.Retrigger(false);
     }
 
     void NoteOff()

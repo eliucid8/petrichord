@@ -259,7 +259,7 @@ int main()
             struct imu_xyz_data g;
             imu_controller.readGravityVector(&g);
 
-            float velocity_float = (std::abs(g.x) / 9.81f) * 127.0f;
+            float velocity_float = (std::abs(g.y) / 9.81f) * 127.0f;
             // convert to uint8_t safely
             if (velocity_float > 127.0f) {
                 imu_velocity = 127;
@@ -318,7 +318,7 @@ int main()
             if(prev_state != key_selected->second) {
                 prev_state = key_selected->second;
                 uint8_t style_index = key_selected->second;
-                g_chord_controller->update_note(style_index - 1, 127);
+                g_chord_controller->update_note(style_index - 1, imu_velocity);
             }
         } else {
             g_chord_controller->update_note(255, 0);
