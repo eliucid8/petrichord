@@ -40,10 +40,10 @@ extern "C" {
 #define IO_SCL 15
 #define IO_INTN 9
 
-#define PRINT_AUDIO false
+#define PRINT_AUDIO true
 #define PRINT_IMU false
-#define PRINT_MIDI false
-#define PRINT_KEYS true
+#define PRINT_MIDI true
+#define PRINT_KEYS false
 #define PLOT_AUDIO false
 #define PRINT_IO_EXTENDER false
 

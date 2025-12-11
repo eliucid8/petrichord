@@ -124,7 +124,6 @@ uint8_t gpio_states[2] = {0, 0};
 // Core 1: mic / FFT + Pitch Processing
 // =====================================
 void core1_entry() {
-
     MicPitchDetector pitch;
     pitch.init();   
     printf("mic initialized\n");
@@ -151,13 +150,18 @@ void core1_entry() {
 // =======================
 int main()
 {
-    init_io();
-
     // Init shared pitch mutex
     mutex_init(&pitch_mutex);
 
+    init_io();
+
     // Launch mic/FFT processing on core 1
     multicore_launch_core1(core1_entry);
+
+    // core1_entry();
+    // while(true) {
+
+    // }
 
     // OPTIMIZE: make a petrichord object with instance variables so we can init everything in separate functions cleanly
     MidiMessenger midi_messenger(uart0, PRINT_MIDI);
